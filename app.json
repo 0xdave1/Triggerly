@@ -1,0 +1,47 @@
+{
+  "expo": {
+    "name": "Triggerly",
+    "slug": "triggerly",
+    "scheme": "triggerly",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "plugins": [
+      "expo-router",
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Triggerly uses your location only for location reminders you create."
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "color": "#2563EB"
+        }
+      ]
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.triggerly.app",
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "Triggerly uses your location only for reminders you create.",
+        "NSMicrophoneUsageDescription": "Triggerly would use the microphone only when you tap record. Recording is not part of this MVP."
+      }
+    },
+    "android": {
+      "package": "com.triggerly.app",
+      "permissions": [
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION",
+        "POST_NOTIFICATIONS"
+      ]
+    },
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}
