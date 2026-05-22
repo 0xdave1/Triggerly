@@ -13,18 +13,45 @@ export function TerminalScreen({ children, scroll = true }: TerminalScreenProps)
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <View style={styles.glowOne} pointerEvents="none" />
-      <View style={styles.glowTwo} pointerEvents="none" />
-      {scroll ? <ScrollView keyboardShouldPersistTaps="handled">{content}</ScrollView> : content}
-      <ScanlineOverlay />
+      <View style={styles.shell}>
+        <View style={styles.glowOne} pointerEvents="none" />
+        <View style={styles.glowTwo} pointerEvents="none" />
+        {scroll ? (
+          <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled" style={styles.scroll}>
+            {content}
+          </ScrollView>
+        ) : (
+          content
+        )}
+        <ScanlineOverlay />
+      </View>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   safeArea: {
+    alignItems: "center",
     flex: 1,
     backgroundColor: colors.background
+  },
+  shell: {
+    backgroundColor: colors.background,
+    borderLeftColor: colors.border,
+    borderLeftWidth: 1,
+    borderRightColor: colors.border,
+    borderRightWidth: 1,
+    flex: 1,
+    maxWidth: 430,
+    overflow: "hidden",
+    width: "100%"
+  },
+  scroll: {
+    flex: 1,
+    width: "100%"
+  },
+  scrollContent: {
+    flexGrow: 1
   },
   content: {
     gap: spacing.lg,
