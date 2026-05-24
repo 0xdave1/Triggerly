@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { Alert, StyleSheet, Text, View } from "react-native";
 import { router } from "expo-router";
 import { ZodError } from "zod";
@@ -12,7 +12,9 @@ import { getCurrentCoordinates } from "@/features/location/permissions";
 import { reminderCreateSchema } from "@/features/reminders/schema";
 import { useReminderStore } from "@/features/reminders/store";
 import type { HabitFrequencyType, ReminderCreateInput, ReminderType, ReminderWithTriggers } from "@/features/reminders/types";
+import { useParseReminderInput } from "@/features/reminders/hooks";
 import { parseReminderInput } from "@/features/reminders/utils";
+import { getFriendlyApiError } from "@/lib/apiClient";
 import { TriggerTypeSelector } from "./TriggerTypeSelector";
 import { colors, spacing, typography } from "@/styles/theme";
 
@@ -39,6 +41,7 @@ export function ReminderForm({ initialReminder, initialQuickInput = "", onSubmit
   const [frequencyType, setFrequencyType] = useState<HabitFrequencyType>(initialReminder?.habit?.frequencyType ?? "daily");
   const [frequencyCount, setFrequencyCount] = useState(String(initialReminder?.habit?.frequencyCount ?? 1));
   const [error, setError] = useState<string>();
+  const parseMutation = useParseReminderInput();
 
   useEffect(() => {
     if (!locationDraft) return;
@@ -49,7 +52,15 @@ export function ReminderForm({ initialReminder, initialQuickInput = "", onSubmit
     setLocationTriggerType(locationDraft.triggerType);
   }, [locationDraft]);
 
-  const parsedQuickInput = useMemo(() => (quickInput ? parseReminderInput(quickInput) : undefined), [quickInput]);
+  const parsedQuickInput = quickInput ? parseMutation.data ?? parseReminderInput(quickInput) : undefined;
+
+  useEffect(() => {
+    if (!quickInput.trim()) return;
+    const timer = setTimeout(() => {
+      parseMutation.mutate(quickInput);
+    }, 450);
+    return () => clearTimeout(timer);
+  }, [quickInput]);
 
   useEffect(() => {
     if (!initialQuickInput) return;
@@ -100,7 +111,7 @@ export function ReminderForm({ initialReminder, initialQuickInput = "", onSubmit
       await onSubmit(input);
       setLocationDraft(undefined);
     } catch (caught) {
-      const message = caught instanceof ZodError ? caught.issues[0]?.message : caught instanceof Error ? caught.message : "Failed to save reminder.";
+      const message = caught instanceof ZodError ? caught.issues[0]?.message : getFriendlyApiError(caught);
       setError(message);
     }
   };

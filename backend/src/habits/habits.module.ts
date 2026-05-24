@@ -1,0 +1,12 @@
+import { Module } from "@nestjs/common";
+import { ReminderEventsModule } from "@/events/reminder-events.module";
+import { HabitsController } from "./habits.controller";
+import { HabitsService } from "./habits.service";
+
+@Module({
+  imports: [ReminderEventsModule],
+  controllers: [HabitsController],
+  providers: [HabitsService],
+  exports: [HabitsService]
+})
+export class HabitsModule {}

@@ -12,6 +12,8 @@ import { TerminalHeader } from "@/components/ui/TerminalHeader";
 import { TerminalScreen } from "@/components/ui/TerminalScreen";
 import { useReminderActions, useReminders } from "@/features/reminders/hooks";
 import { filterReminders, getTodayReminders, parseReminderInput, type ReminderFilter } from "@/features/reminders/utils";
+import { groupErrandsByLocation } from "@/features/errands/grouping";
+import { getFriendlyApiError } from "@/lib/apiClient";
 import { colors, spacing, typography } from "@/styles/theme";
 
 export default function HomeScreen() {
@@ -23,10 +25,11 @@ export default function HomeScreen() {
   const reminders = remindersQuery.data ?? [];
   const visibleReminders = useMemo(() => filterReminders(reminders, filter), [filter, reminders]);
   const todayReminders = useMemo(() => getTodayReminders(reminders), [reminders]);
+  const errandGroups = useMemo(() => groupErrandsByLocation(reminders), [reminders]);
 
   const addQuickReminder = () => {
     const parsed = parseReminderInput(quickInput);
-    router.push({ pathname: "/reminders/new", params: { quick: parsed.title } });
+    router.push({ pathname: "/triggers/confirm", params: { input: parsed.title } });
   };
 
   return (
@@ -48,6 +51,8 @@ export default function HomeScreen() {
       </View>
 
       <TerminalCard title="today.queue" tone="cyan">
+        {remindersQuery.isLoading ? <Text style={styles.muted}>loading_reminder_queue...</Text> : null}
+        {remindersQuery.error ? <Text style={styles.error}>{getFriendlyApiError(remindersQuery.error)}</Text> : null}
         {todayReminders.length === 0 ? <Text style={styles.muted}>queue_empty · no triggers due today</Text> : null}
         {todayReminders.map((reminder) => (
           <ReminderTerminalCard
@@ -59,6 +64,22 @@ export default function HomeScreen() {
           />
         ))}
       </TerminalCard>
+
+      {errandGroups.length > 0 ? (
+        <TerminalCard title="errand_groups.by_location" tone="cyan">
+          {errandGroups.map((group) => (
+            <TerminalCard key={group.placeName} title={`${group.placeName}.tasks_here`} active>
+              <Text style={styles.sectionTitle}>{group.reminders.length} tasks here</Text>
+              {group.reminders.map((reminder) => (
+                <Text key={reminder.id} style={styles.muted}>
+                  - {reminder.title}
+                </Text>
+              ))}
+              <Text style={styles.muted}>{group.voiceScript}</Text>
+            </TerminalCard>
+          ))}
+        </TerminalCard>
+      ) : null}
 
       <View style={styles.sectionHeader}>
         <Text style={styles.sectionTitle}>active_triggers</Text>
@@ -98,6 +119,12 @@ const styles = StyleSheet.create({
   },
   muted: {
     color: colors.textMuted,
+    fontFamily: typography.mono,
+    fontSize: typography.small,
+    lineHeight: 20
+  },
+  error: {
+    color: colors.danger,
     fontFamily: typography.mono,
     fontSize: typography.small,
     lineHeight: 20

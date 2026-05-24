@@ -3,6 +3,10 @@ export type ReminderStatus = "active" | "completed" | "deleted" | "snoozed";
 export type LocationTriggerType = "arrival" | "departure";
 export type HabitFrequencyType = "daily" | "weekly" | "monthly" | "custom";
 export type ReminderEventType = "created" | "triggered" | "completed" | "snoozed" | "dismissed" | "edited";
+export type DeliveryMode = "push" | "voice" | "voice_and_push" | "silent" | "urgent";
+export type TriggerIntentType = "time" | "location_arrival" | "location_departure" | "habit" | "contact" | "errand_group" | "action_prompt";
+export type ActionPromptType = "draft_email" | "open_payment_app" | "call_contact" | "open_maps" | "open_url";
+export type VoiceStyle = "calm" | "energetic" | "professional" | "friendly" | "minimal";
 
 export type User = {
   id: string;
@@ -20,6 +24,14 @@ export type Reminder = {
   status: ReminderStatus;
   createdAt: string;
   updatedAt: string;
+  deliveryMode?: DeliveryMode;
+  voiceScript?: string;
+  voiceStyle?: VoiceStyle;
+  voiceEnabled?: boolean;
+  contactName?: string;
+  contactId?: string;
+  actionType?: ActionPromptType;
+  actionPayload?: Record<string, unknown>;
 };
 
 export type LocationTrigger = {
@@ -72,6 +84,14 @@ export type ReminderCreateInput = {
   timeTrigger?: Omit<TimeTrigger, "id" | "reminderId" | "lastTriggeredAt">;
   locationTrigger?: Omit<LocationTrigger, "id" | "reminderId" | "lastTriggeredAt">;
   habit?: Omit<Habit, "id" | "reminderId" | "lastCompletedAt" | "nextDueAt">;
+  deliveryMode?: DeliveryMode;
+  voiceScript?: string;
+  voiceStyle?: VoiceStyle;
+  voiceEnabled?: boolean;
+  contactName?: string;
+  contactId?: string;
+  actionType?: ActionPromptType;
+  actionPayload?: Record<string, unknown>;
 };
 
 export type ReminderUpdateInput = Partial<ReminderCreateInput> & {
@@ -84,4 +104,31 @@ export type ParsedReminderInput = {
   possibleTime?: string;
   possibleLocationPhrase?: string;
   confidence: number;
+};
+
+export type TriggerIntent = {
+  taskTitle: string;
+  triggerType: TriggerIntentType;
+  locationCandidate?: string;
+  timeCandidate?: string;
+  habitCandidate?: string;
+  contactCandidate?: string;
+  suggestedDeliveryMode: DeliveryMode;
+  suggestedVoiceScript: string;
+  confidence: number;
+  requiresConfirmation: true;
+  frequency?: HabitFrequencyType;
+  dayOfWeek?: string;
+  timeOfDay?: string;
+  actionType?: ActionPromptType;
+};
+
+export type ContactMemory = {
+  id: string;
+  name: string;
+  phone?: string;
+  email?: string;
+  notes?: string;
+  createdAt: string;
+  updatedAt: string;
 };

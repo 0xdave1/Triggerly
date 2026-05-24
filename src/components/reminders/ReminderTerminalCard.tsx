@@ -29,6 +29,8 @@ export function ReminderTerminalCard({ reminder, onPress, onComplete, onSnooze }
       ) : null}
       {reminder.timeTrigger ? <TerminalStatRow label="time" value={new Date(reminder.timeTrigger.triggerDateTime).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })} tone="cyan" /> : null}
       {reminder.habit ? <TerminalStatRow label="frequency" value={`${reminder.habit.frequencyCount}x ${reminder.habit.frequencyType}`} tone="amber" /> : null}
+      {reminder.deliveryMode ? <TerminalStatRow label="delivery_mode" value={reminder.deliveryMode} tone={reminder.voiceEnabled ? "cyan" : "muted"} /> : null}
+      {reminder.actionType ? <TerminalStatRow label="action_locked" value="user_approval_required" tone="amber" /> : null}
       <TerminalStatRow label="privacy" value={reminder.locationTrigger ? "location only" : "user-defined"} tone="muted" />
       <View style={styles.actions}>
         {onComplete ? (

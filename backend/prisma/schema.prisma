@@ -1,0 +1,255 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum ReminderType {
+  TIME
+  LOCATION
+  HABIT
+  HYBRID
+}
+
+enum ReminderStatus {
+  ACTIVE
+  COMPLETED
+  DELETED
+  SNOOZED
+}
+
+enum LocationTriggerType {
+  ARRIVAL
+  DEPARTURE
+}
+
+enum HabitFrequencyType {
+  DAILY
+  WEEKLY
+  MONTHLY
+  CUSTOM
+}
+
+enum ReminderEventType {
+  CREATED
+  TRIGGERED
+  COMPLETED
+  SNOOZED
+  DISMISSED
+  EDITED
+  DELETED
+}
+
+enum DevicePlatform {
+  IOS
+  ANDROID
+  WEB
+}
+
+enum DeliveryMode {
+  PUSH
+  VOICE
+  VOICE_AND_PUSH
+  SILENT
+  URGENT
+}
+
+enum ActionType {
+  DRAFT_EMAIL
+  OPEN_PAYMENT_APP
+  CALL_CONTACT
+  OPEN_MAPS
+  OPEN_URL
+}
+
+enum ActionPromptStatus {
+  PENDING_CONFIRMATION
+  CONFIRMED
+  CANCELLED
+  COMPLETED
+}
+
+model User {
+  id              String                @id @default(cuid())
+  name            String?
+  email           String                @unique
+  passwordHash    String
+  createdAt       DateTime              @default(now())
+  updatedAt       DateTime              @updatedAt
+  reminders       Reminder[]
+  events          ReminderEvent[]
+  devices         Device[]
+  privacySetting  UserPrivacySetting?
+  voiceSetting    UserVoiceSetting?
+  contactMemories ContactMemory[]
+  actionPrompts   ActionPrompt[]
+  intentParseLogs IntentParseLog[]
+}
+
+model Reminder {
+  id              String            @id @default(cuid())
+  userId          String
+  title           String
+  notes           String?
+  type            ReminderType
+  status          ReminderStatus    @default(ACTIVE)
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  completedAt     DateTime?
+  deletedAt       DateTime?
+  deliveryMode    DeliveryMode      @default(PUSH)
+  voiceScript     String?
+  voiceEnabled    Boolean           @default(false)
+  contactMemoryId String?
+  actionPromptId  String?
+  user            User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  contactMemory   ContactMemory?    @relation(fields: [contactMemoryId], references: [id], onDelete: SetNull)
+  locationTrigger LocationTrigger?
+  timeTrigger     TimeTrigger?
+  habit           Habit?
+  events          ReminderEvent[]
+  actionPrompt    ActionPrompt?
+
+  @@index([userId, status])
+  @@index([userId, type])
+}
+
+model LocationTrigger {
+  id              String              @id @default(cuid())
+  reminderId      String              @unique
+  placeName       String
+  latitude        Float
+  longitude       Float
+  radiusMeters    Int
+  triggerType     LocationTriggerType
+  lastTriggeredAt DateTime?
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+  reminder        Reminder            @relation(fields: [reminderId], references: [id], onDelete: Cascade)
+}
+
+model TimeTrigger {
+  id              String    @id @default(cuid())
+  reminderId      String    @unique
+  triggerDateTime DateTime
+  timezone        String
+  repeatRule      String?
+  lastTriggeredAt DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  reminder        Reminder  @relation(fields: [reminderId], references: [id], onDelete: Cascade)
+
+  @@index([triggerDateTime])
+}
+
+model Habit {
+  id              String              @id @default(cuid())
+  reminderId      String              @unique
+  frequencyType   HabitFrequencyType
+  frequencyCount  Int
+  lastCompletedAt DateTime?
+  nextDueAt       DateTime?
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+  reminder        Reminder            @relation(fields: [reminderId], references: [id], onDelete: Cascade)
+
+  @@index([nextDueAt])
+}
+
+model ReminderEvent {
+  id          String            @id @default(cuid())
+  reminderId  String
+  userId      String
+  eventType   ReminderEventType
+  timestamp   DateTime          @default(now())
+  metadata    Json?
+  reminder    Reminder          @relation(fields: [reminderId], references: [id], onDelete: Cascade)
+  user        User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, timestamp])
+  @@index([reminderId, timestamp])
+}
+
+model Device {
+  id          String          @id @default(cuid())
+  userId      String
+  platform    DevicePlatform
+  pushToken   String
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+  lastSeenAt  DateTime?
+  user        User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, pushToken])
+  @@index([userId])
+}
+
+model UserPrivacySetting {
+  id                String    @id @default(cuid())
+  userId            String    @unique
+  locationEnabled   Boolean   @default(false)
+  voiceInputEnabled Boolean   @default(false)
+  aiParsingEnabled  Boolean   @default(true)
+  dataRetentionDays Int?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model UserVoiceSetting {
+  id                        String    @id @default(cuid())
+  userId                    String    @unique
+  voiceNotificationsEnabled Boolean   @default(false)
+  selectedVoiceStyle        String    @default("calm")
+  selectedVoiceId           String?
+  readFullReminder          Boolean   @default(true)
+  readLocationContext       Boolean   @default(true)
+  createdAt                 DateTime  @default(now())
+  updatedAt                 DateTime  @updatedAt
+  user                      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model ContactMemory {
+  id        String     @id @default(cuid())
+  userId    String
+  name      String
+  phone     String?
+  email     String?
+  notes     String?
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  reminders Reminder[]
+
+  @@index([userId, name])
+}
+
+model ActionPrompt {
+  id         String             @id @default(cuid())
+  userId     String
+  reminderId String?            @unique
+  actionType ActionType
+  payload    Json?
+  status     ActionPromptStatus @default(PENDING_CONFIRMATION)
+  createdAt  DateTime           @default(now())
+  updatedAt  DateTime           @updatedAt
+  user       User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  reminder   Reminder?          @relation(fields: [reminderId], references: [id], onDelete: SetNull)
+
+  @@index([userId, status])
+}
+
+model IntentParseLog {
+  id           String   @id @default(cuid())
+  userId       String
+  input        String
+  parsedOutput Json
+  confidence   Float
+  createdAt    DateTime @default(now())
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+}

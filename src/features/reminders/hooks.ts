@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Alert } from "react-native";
 import {
   clearLocalReminderData,
   completeReminder,
@@ -7,9 +8,11 @@ import {
   getReminder,
   listReminders,
   snoozeReminder,
-  updateReminder
+  updateReminder,
+  parseReminderInputWithBackend
 } from "./api";
 import type { ReminderCreateInput, ReminderUpdateInput } from "./types";
+import { getFriendlyApiError } from "@/lib/apiClient";
 
 export const reminderKeys = {
   all: ["reminders"] as const,
@@ -50,11 +53,18 @@ export function useUpdateReminder(id: string) {
 export function useReminderActions() {
   const queryClient = useQueryClient();
   const invalidate = () => queryClient.invalidateQueries({ queryKey: reminderKeys.all });
+  const onError = (error: unknown) => Alert.alert("Action failed", getFriendlyApiError(error));
 
   return {
-    complete: useMutation({ mutationFn: completeReminder, onSuccess: invalidate }),
-    delete: useMutation({ mutationFn: deleteReminder, onSuccess: invalidate }),
-    snooze: useMutation({ mutationFn: snoozeReminder, onSuccess: invalidate }),
-    clearLocalData: useMutation({ mutationFn: clearLocalReminderData, onSuccess: invalidate })
+    complete: useMutation({ mutationFn: completeReminder, onSuccess: invalidate, onError }),
+    delete: useMutation({ mutationFn: deleteReminder, onSuccess: invalidate, onError }),
+    snooze: useMutation({ mutationFn: snoozeReminder, onSuccess: invalidate, onError }),
+    clearLocalData: useMutation({ mutationFn: clearLocalReminderData, onSuccess: invalidate, onError })
   };
+}
+
+export function useParseReminderInput() {
+  return useMutation({
+    mutationFn: (input: string) => parseReminderInputWithBackend(input)
+  });
 }

@@ -3,8 +3,10 @@ import { router, useLocalSearchParams } from "expo-router";
 import { ReminderForm } from "@/components/reminders/ReminderForm";
 import { TerminalHeader } from "@/components/ui/TerminalHeader";
 import { TerminalScreen } from "@/components/ui/TerminalScreen";
+import { consumeReminderApiWarning } from "@/features/reminders/api";
 import { useCreateReminder, useReminder, useUpdateReminder } from "@/features/reminders/hooks";
 import type { ReminderCreateInput } from "@/features/reminders/types";
+import { getFriendlyApiError } from "@/lib/apiClient";
 
 export default function NewReminderScreen() {
   const params = useLocalSearchParams<{ id?: string; quick?: string }>();
@@ -19,9 +21,11 @@ export default function NewReminderScreen() {
       } else {
         await createReminder.mutateAsync(input);
       }
+      const warning = consumeReminderApiWarning();
+      if (warning) Alert.alert("Saved with warning", warning);
       router.replace("/");
     } catch (error) {
-      Alert.alert("Could not save reminder", error instanceof Error ? error.message : "Please try again.");
+      Alert.alert("Could not save reminder", getFriendlyApiError(error));
       throw error;
     }
   };
