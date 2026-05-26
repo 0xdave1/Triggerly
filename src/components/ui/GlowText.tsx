@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 import { Animated, StyleSheet, Text, TextProps } from "react-native";
-import { colors, glows, typography } from "@/styles/theme";
+import { colors, typography } from "@/styles/theme";
 import { useReducedMotion } from "./animation";
 
 type GlowTextProps = TextProps & {
@@ -24,7 +24,7 @@ export function GlowText({ pulse = false, style, children, ...props }: GlowTextP
   }, [opacity, pulse, reducedMotion]);
 
   return (
-    <Animated.Text {...props} style={[styles.text, glows.primary, { opacity }, style]}>
+    <Animated.Text {...props} style={[styles.text, { opacity }, style]}>
       {children}
     </Animated.Text>
   );

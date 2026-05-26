@@ -68,11 +68,11 @@ Triggerly does not include covert recording, always-on microphone access, silent
 
 Triggerly uses a dark terminal-inspired interface without copying any reference site directly. The design system lives in `src/styles/theme.ts` and `src/components/ui`.
 
-- Background: near-black surfaces with subtle green/cyan glow.
+- Background: flat near-black terminal surfaces with a thin desktop-style chrome bar.
 - Accent colors: neon green for armed/ready states, cyan for location/context, amber for pending/snoozed, red for destructive actions.
 - Typography: monospace-first labels with command-line and snake_case language.
-- Panels: terminal cards with translucent dark surfaces, thin glowing borders, and row dividers.
-- Motion: lightweight React Native Animated effects for typed header text, scanline motion, blinking command cursor, card fade/slide-in, button press scale, status flicker, and active count glow. Reduced-motion settings are respected where practical.
+- Panels: simple black cards with thin borders, compact radii, and row dividers. The MVP intentionally avoids green shadow/glow haze.
+- Motion: lightweight React Native Animated effects for typed header text, scanline motion, blinking command cursor, card fade/slide-in, button press scale, and subtle status changes. Reduced-motion settings are respected where practical.
 - Privacy language: the UI says `user-defined triggers only`, `no background listening`, and `location used only for reminders you create`.
 
 ## AI Trigger Engine

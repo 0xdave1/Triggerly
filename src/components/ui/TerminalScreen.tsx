@@ -1,5 +1,5 @@
 import type { PropsWithChildren } from "react";
-import { ScrollView, StyleSheet, View } from "react-native";
+import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { colors, spacing } from "@/styles/theme";
 import { ScanlineOverlay } from "./ScanlineOverlay";
@@ -14,8 +14,14 @@ export function TerminalScreen({ children, scroll = true }: TerminalScreenProps)
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.shell}>
-        <View style={styles.glowOne} pointerEvents="none" />
-        <View style={styles.glowTwo} pointerEvents="none" />
+        <View style={styles.chrome}>
+          <View style={[styles.chromeDot, styles.red]} />
+          <View style={[styles.chromeDot, styles.yellow]} />
+          <View style={[styles.chromeDot, styles.green]} />
+          <View style={styles.chromeTitleWrap}>
+            <Text style={styles.chromeTitle}>triggerly.sh</Text>
+          </View>
+        </View>
         {scroll ? (
           <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled" style={styles.scroll}>
             {content}
@@ -37,14 +43,47 @@ const styles = StyleSheet.create({
   },
   shell: {
     backgroundColor: colors.background,
-    borderLeftColor: colors.border,
-    borderLeftWidth: 1,
-    borderRightColor: colors.border,
-    borderRightWidth: 1,
+    borderColor: colors.border,
+    borderWidth: 1,
     flex: 1,
     maxWidth: 430,
     overflow: "hidden",
     width: "100%"
+  },
+  chrome: {
+    alignItems: "center",
+    backgroundColor: colors.chrome,
+    borderBottomColor: colors.border,
+    borderBottomWidth: 1,
+    flexDirection: "row",
+    gap: 6,
+    height: 28,
+    paddingHorizontal: spacing.md
+  },
+  chromeDot: {
+    borderRadius: 4,
+    height: 8,
+    width: 8
+  },
+  red: {
+    backgroundColor: "#FF5F56"
+  },
+  yellow: {
+    backgroundColor: "#FFBD2E"
+  },
+  green: {
+    backgroundColor: "#27C93F"
+  },
+  chromeTitleWrap: {
+    alignItems: "center",
+    flex: 1,
+    paddingRight: 42
+  },
+  chromeTitle: {
+    color: colors.textMuted,
+    fontFamily: "monospace",
+    fontSize: 10,
+    letterSpacing: 1.8
   },
   scroll: {
     flex: 1,
@@ -57,23 +96,5 @@ const styles = StyleSheet.create({
     gap: spacing.lg,
     padding: spacing.lg,
     paddingBottom: spacing.xxl
-  },
-  glowOne: {
-    backgroundColor: "rgba(0, 255, 102, 0.08)",
-    borderRadius: 220,
-    height: 320,
-    position: "absolute",
-    right: -130,
-    top: -120,
-    width: 320
-  },
-  glowTwo: {
-    backgroundColor: "rgba(24, 216, 255, 0.045)",
-    borderRadius: 180,
-    bottom: 120,
-    height: 240,
-    left: -110,
-    position: "absolute",
-    width: 240
   }
 });

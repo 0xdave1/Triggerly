@@ -59,6 +59,7 @@ function RootStack() {
   return (
     <Stack
       screenOptions={{
+        headerShown: false,
         headerTintColor: colors.primary,
         headerStyle: { backgroundColor: colors.background },
         headerShadowVisible: false,

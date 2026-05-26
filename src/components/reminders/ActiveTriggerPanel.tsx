@@ -22,7 +22,7 @@ export function ActiveTriggerPanel({ reminders }: ActiveTriggerPanelProps) {
         <GlowText pulse style={styles.count}>
           {String(active.length).padStart(2, "0")}
         </GlowText>
-        <Text style={styles.status}>SECURED · USER-DEFINED · READY</Text>
+        <Text style={styles.status}>SECURED / USER-DEFINED / READY</Text>
       </View>
       <TerminalStatRow label="location_triggers" value={`${locationCount} armed`} tone="cyan" />
       <TerminalStatRow label="time_triggers" value={`${timeCount} scheduled`} tone="green" />

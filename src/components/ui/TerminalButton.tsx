@@ -1,7 +1,7 @@
 import type { PropsWithChildren } from "react";
 import { useRef } from "react";
 import { ActivityIndicator, Animated, Pressable, StyleSheet, Text, ViewStyle } from "react-native";
-import { colors, glows, radii, spacing, typography } from "@/styles/theme";
+import { colors, radii, spacing, typography } from "@/styles/theme";
 
 type TerminalButtonVariant = "primary" | "secondary" | "danger" | "ghost";
 
@@ -27,10 +27,10 @@ export function TerminalButton({ children, onPress, disabled, loading, variant =
         onPress={onPress}
         onPressIn={pressIn}
         onPressOut={pressOut}
-        style={[styles.base, styles[variant], variant === "primary" && glows.primary, (disabled || loading) && styles.disabled]}
+        style={[styles.base, styles[variant], (disabled || loading) && styles.disabled]}
       >
         {loading ? (
-          <ActivityIndicator color={variant === "primary" ? colors.primary : colors.textMuted} />
+          <ActivityIndicator color={variant === "primary" ? colors.black : colors.textMuted} />
         ) : (
           <Text style={[styles.text, styles[`${variant}Text` as const]]}>{children}</Text>
         )}
@@ -51,6 +51,7 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.md
   },
   primary: {
+    backgroundColor: colors.primary,
     borderColor: colors.primary
   },
   secondary: {
@@ -74,7 +75,7 @@ const styles = StyleSheet.create({
     textTransform: "uppercase"
   },
   primaryText: {
-    color: colors.primary
+    color: colors.black
   },
   secondaryText: {
     color: colors.textMuted

@@ -1,6 +1,6 @@
 import { PropsWithChildren, useEffect, useRef } from "react";
 import { Animated, StyleSheet, Text, View } from "react-native";
-import { colors, glows, radii, spacing, typography } from "@/styles/theme";
+import { colors, radii, spacing, typography } from "@/styles/theme";
 import { useReducedMotion } from "./animation";
 
 type TerminalCardProps = PropsWithChildren<{
@@ -27,7 +27,6 @@ export function TerminalCard({ children, title, active = false, tone = "green" }
         styles.card,
         toneStyles[tone],
         active && styles.active,
-        active && glows.primary,
         { opacity: fade, transform: [{ translateY }] }
       ]}
     >
@@ -43,7 +42,7 @@ export function TerminalCard({ children, title, active = false, tone = "green" }
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: "rgba(11, 15, 12, 0.92)",
+    backgroundColor: colors.surface,
     borderColor: colors.border,
     borderRadius: radii.lg,
     borderWidth: 1,
@@ -52,7 +51,9 @@ const styles = StyleSheet.create({
     padding: spacing.lg
   },
   active: {
-    borderColor: colors.borderStrong
+    borderColor: colors.borderStrong,
+    borderLeftColor: colors.primary,
+    borderLeftWidth: 2
   },
   header: {
     borderBottomColor: colors.border,
@@ -71,7 +72,7 @@ const styles = StyleSheet.create({
 
 const toneStyles = {
   green: { borderColor: colors.border },
-  cyan: { borderColor: "rgba(24,216,255,0.22)" },
-  amber: { borderColor: "rgba(255,184,46,0.22)" },
-  neutral: { borderColor: "rgba(109,117,109,0.22)" }
+  cyan: { borderColor: "rgba(24,216,255,0.34)" },
+  amber: { borderColor: "rgba(255,184,46,0.34)" },
+  neutral: { borderColor: colors.border }
 };
