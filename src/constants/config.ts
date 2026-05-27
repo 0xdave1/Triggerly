@@ -8,6 +8,5 @@ export const APP_CONFIG = {
 };
 
 function getApiBaseUrl(): string {
-  const env = (globalThis as typeof globalThis & { process?: { env?: Record<string, string | undefined> } }).process?.env;
-  return env?.EXPO_PUBLIC_API_URL ?? "http://localhost:4000";
+  return process.env.EXPO_PUBLIC_API_URL ?? "http://localhost:4000";
 }

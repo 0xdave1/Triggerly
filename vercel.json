@@ -1,6 +1,10 @@
 {
   "buildCommand": "npm run build:web",
   "outputDirectory": "dist",
+  "env": {
+    "EXPO_PUBLIC_API_URL": "https://triggerly-a9bd.onrender.com",
+    "EXPO_PUBLIC_APP_NAME": "Triggerly"
+  },
   "rewrites": [
     {
       "source": "/(.*)",

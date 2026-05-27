@@ -15,9 +15,21 @@ export class NotificationsService {
   private readonly memoryJobs = new Map<string, ReminderNotificationJob>();
 
   constructor(config: ConfigService) {
-    const redisUrl = config.get<string>("redisUrl");
+    const redisUrl = config.get<string>("redisUrl")?.trim();
     if (redisUrl) {
-      const parsed = new URL(redisUrl);
+      let parsed: URL;
+      try {
+        parsed = new URL(redisUrl);
+      } catch {
+        this.logger.warn("REDIS_URL is invalid. Notification queue disabled; using in-memory scheduling placeholder.");
+        return;
+      }
+
+      if (parsed.protocol !== "redis:" && parsed.protocol !== "rediss:") {
+        this.logger.warn("REDIS_URL must use redis:// or rediss://. Notification queue disabled; using in-memory scheduling placeholder.");
+        return;
+      }
+
       this.queue = new Queue<ReminderNotificationJob>("notifications", {
         connection: {
           host: parsed.hostname,
