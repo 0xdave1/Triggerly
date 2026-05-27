@@ -8,7 +8,7 @@ NestJS + PostgreSQL + Prisma backend for Triggerly, a privacy-first reminder ass
 cd backend
 npm install
 cp .env.example .env
-npm run prisma:generate
+npm run db:generate
 npm run prisma:migrate
 npm run start:dev
 ```
@@ -25,6 +25,47 @@ npm run start:dev
 - `ENABLE_SWAGGER` optional
 - `AI_PROVIDER` optional
 - `OPENAI_API_KEY` optional and unused by the MVP heuristic parser
+
+## Render Deployment
+
+Root Directory:
+
+```text
+backend
+```
+
+Build Command:
+
+```bash
+npm install && npx prisma generate && npm run build
+```
+
+Start Command:
+
+```bash
+npx prisma migrate deploy && npm run start:prod
+```
+
+Health Check Path:
+
+```text
+/health
+```
+
+Required Render env values:
+
+```text
+NODE_ENV=production
+PORT=10000
+DATABASE_URL=postgresql://...
+JWT_SECRET=use_a_32_plus_character_random_secret
+JWT_EXPIRES_IN=7d
+CORS_ORIGINS=https://your-vercel-domain.vercel.app,http://localhost:8081
+ENABLE_SWAGGER=false
+AI_PROVIDER=heuristic
+```
+
+Use raw env values in the Render dashboard. Do not wrap `DATABASE_URL` or other values in quotes.
 
 ## API Overview
 

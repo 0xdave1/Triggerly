@@ -1,4 +1,5 @@
 import { ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
+import { Prisma } from "@prisma/client";
 import { ReminderEventType } from "@/common/enums";
 import { PrismaService } from "@/prisma/prisma.service";
 import { CreateReminderEventDto } from "./dto/create-reminder-event.dto";
@@ -19,7 +20,7 @@ export class ReminderEventsService {
 
   async create(userId: string, reminderId: string, eventType: ReminderEventType, metadata?: Record<string, unknown>) {
     return this.prisma.reminderEvent.create({
-      data: { userId, reminderId, eventType, metadata: metadata ?? undefined }
+      data: { userId, reminderId, eventType, metadata: metadata as Prisma.InputJsonValue | undefined }
     });
   }
 }

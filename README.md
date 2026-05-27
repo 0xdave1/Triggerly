@@ -1,138 +1,237 @@
 # Triggerly
 
-Triggerly is a privacy-first, location-aware AI reminder assistant MVP built with Expo, React Native, and TypeScript.
+Triggerly is a privacy-first AI Trigger Agent. It includes an Expo React Native app at the repo root and a NestJS/PostgreSQL backend in `backend/`.
 
-## Run
+The product intentionally does not include covert recording, always-on listening, hidden location tracking, autonomous payments, automatic private-message reading, or automatic email sending.
+
+## Repo Structure
+
+```text
+Triggerly/
+  src/                 Expo Router mobile/web app
+  backend/             NestJS API, Prisma, PostgreSQL
+  app.json             Expo app config
+  package.json         Expo app scripts
+  vercel.json          Vercel static web export config
+  render.yaml          Render backend blueprint
+```
+
+This is a two-app repo, not a `mobile/` + `web/` + `backend/` monorepo. The mobile/frontend app lives at the root.
+
+## Local Development
+
+Install and run the Expo app:
 
 ```bash
 npm install
 npm run start
 ```
 
-Useful checks:
+Run checks:
 
 ```bash
 npm run typecheck
 npm run test
+npm run build:web
 ```
 
-## Backend API Connection
-
-Set the backend URL before starting Expo:
+Run the backend:
 
 ```bash
-EXPO_PUBLIC_API_URL=http://localhost:3000 npm run start
+cd backend
+npm install
+cp .env.example .env
+npm run db:generate
+npm run prisma:migrate
+npm run start:dev
 ```
 
-On Android emulators, use your host alias instead:
+## Backend Env
+
+Create `backend/.env` from `backend/.env.example`.
+
+Required:
+
+```text
+NODE_ENV=development
+PORT=4000
+DATABASE_URL=postgresql://USER:PASSWORD@HOST:PORT/DATABASE
+JWT_SECRET=replace_with_a_long_random_secret
+JWT_EXPIRES_IN=7d
+CORS_ORIGINS=http://localhost:3000,http://localhost:8081
+ENABLE_SWAGGER=false
+```
+
+Optional:
+
+```text
+AI_PROVIDER=heuristic
+OPENAI_API_KEY=
+REDIS_URL=
+PUSH_PROVIDER=expo
+EXPO_ACCESS_TOKEN=
+SENTRY_DSN=
+```
+
+Do not wrap Render dashboard env values in quotes. Use `DATABASE_URL=postgresql://...`, not `DATABASE_URL="postgresql://..."`.
+
+## Mobile Env
+
+Create `.env` from `.env.example` at the repo root:
+
+```text
+EXPO_PUBLIC_API_URL=https://your-render-backend.onrender.com
+EXPO_PUBLIC_APP_NAME=Triggerly
+```
+
+Only public Expo values should use `EXPO_PUBLIC_`. Do not place secrets in frontend env variables.
+
+For local backend development:
 
 ```bash
-EXPO_PUBLIC_API_URL=http://10.0.2.2:3000 npm run start
+EXPO_PUBLIC_API_URL=http://localhost:4000 npm run start
 ```
 
-The mobile app stores the JWT with Expo SecureStore. Authenticated reminder reads/writes call the backend first, then fall back to local storage when the server is unavailable. The local mock layer remains in place so reminders still work during backend outages or early development.
+On Android emulators, use your host alias:
 
-Connected endpoints:
+```bash
+EXPO_PUBLIC_API_URL=http://10.0.2.2:4000 npm run start
+```
 
-- `POST /auth/register`
-- `POST /auth/login`
-- `GET /me`
-- `GET /reminders`
-- `POST /reminders`
-- `GET /reminders/:id`
-- `PATCH /reminders/:id`
-- `DELETE /reminders/:id`
-- `POST /reminders/:id/complete`
-- `POST /reminders/:id/snooze`
-- `POST /ai/parse-reminder`
+Restart Expo after changing env values.
 
-## Permissions
+## Render Backend Deployment
 
-- Notifications are requested from onboarding or settings so time reminders can schedule local alerts.
-- Location is requested only when creating or editing a location reminder, or when tapping "Use current location" in the location picker.
-- Microphone permission is not requested in this MVP. If voice input is added later, it must only record after an explicit tap.
+Render is for the NestJS backend only.
 
-## Privacy Boundaries
+Blueprint config is in `render.yaml`.
 
-Triggerly does not include covert recording, always-on microphone access, silent background audio capture, autonomous payments, automatic reading of private messages, hidden tracking, or surveillance behavior.
+Manual Render settings:
 
-## MVP Limitations
+- Root Directory: `backend`
+- Build Command: `npm install && npx prisma generate && npm run build`
+- Start Command: `npx prisma migrate deploy && npm run start:prod`
+- Health Check Path: `/health`
 
-- Data is stored locally through the mock API layer using Expo SecureStore. This is simple and private for an MVP, but larger datasets should move to SQLite or a backend-backed encrypted store.
-- Location reminders save clean trigger data and include a foreground development check. Production background geofencing is intentionally marked as TODO in `src/features/location/geofence.ts`.
-- Location search is a clean placeholder with manual place names and current coordinates rather than a full map search.
-- Notification action behavior varies by platform. The app registers categories for mark done, snooze, and open, but platform support should be verified during native QA.
-- The AI parser is a local heuristic. Users always confirm fields before saving.
+Required Render env vars:
 
-## Terminal Design System
+```text
+NODE_ENV=production
+PORT=10000
+DATABASE_URL=postgresql://...
+JWT_SECRET=use_a_32_plus_character_random_secret
+JWT_EXPIRES_IN=7d
+CORS_ORIGINS=https://your-vercel-domain.vercel.app,http://localhost:8081
+ENABLE_SWAGGER=false
+AI_PROVIDER=heuristic
+```
 
-Triggerly uses a dark terminal-inspired interface without copying any reference site directly. The design system lives in `src/styles/theme.ts` and `src/components/ui`.
+The backend reads `process.env.PORT`, binds to `0.0.0.0`, exposes `GET /health`, and runs Prisma migrations during the Render start command.
 
-- Background: flat near-black terminal surfaces with a thin desktop-style chrome bar.
-- Accent colors: neon green for armed/ready states, cyan for location/context, amber for pending/snoozed, red for destructive actions.
-- Typography: monospace-first labels with command-line and snake_case language.
-- Panels: simple black cards with thin borders, compact radii, and row dividers. The MVP intentionally avoids green shadow/glow haze.
-- Motion: lightweight React Native Animated effects for typed header text, scanline motion, blinking command cursor, card fade/slide-in, button press scale, and subtle status changes. Reduced-motion settings are respected where practical.
-- Privacy language: the UI says `user-defined triggers only`, `no background listening`, and `location used only for reminders you create`.
+## Vercel Frontend Deployment
 
-## AI Trigger Engine
+There is no separate Next.js web app. Vercel can host the Expo web export from the repo root.
 
-Triggerly now includes a local deterministic AI Trigger Engine in `src/features/aiTrigger/parser.ts`.
+Vercel settings:
 
-It turns typed intentions into structured trigger suggestions:
+- Root Directory: repo root
+- Build Command: `npm run build:web`
+- Output Directory: `dist`
 
-- `time`
-- `location_arrival`
-- `location_departure`
-- `habit`
-- `contact`
-- `errand_group`
-- `action_prompt`
+Required Vercel env vars:
 
-Every parsed intent sets `requiresConfirmation: true`. The app routes quick input to `triggers/confirm`, where the user can edit the task, trigger type, location/time/contact fields, delivery mode, and voice script before tapping `ARM_TRIGGER`.
+```text
+EXPO_PUBLIC_API_URL=https://your-render-backend.onrender.com
+EXPO_PUBLIC_APP_NAME=Triggerly
+```
 
-The parser is intentionally isolated so a future LLM-backed parser can replace it without rewriting screens.
+`vercel.json` rewrites routes to `index.html` so Expo Router pages work on refresh.
 
-## Voice Notifications
+## Expo/EAS Mobile Notes
 
-Voice support is represented by:
+Android and iOS builds should be produced through Expo/EAS later. Do not deploy the mobile app to Render.
 
-- `src/features/voice/scripts.ts`
-- `src/features/voice/settings.ts`
-- `src/features/voice/speech.ts`
+Correct Expo scripts:
 
-The current TTS layer is a placeholder. It is ready for `expo-speech`, but the app does not pretend background voice notification playback is guaranteed. Mobile OS behavior varies, so voice preview and notification-open playback should be validated per platform.
+```json
+{
+  "start": "expo start",
+  "android": "expo start --android",
+  "ios": "expo start --ios",
+  "web": "expo start --web",
+  "build:web": "expo export -p web"
+}
+```
 
-Voice settings are user-selected in `privacy.config` under `voice.config`. Triggerly does not request microphone permission automatically and does not support always-on listening.
+Expo Router requires `"main": "expo-router/entry"` in the root `package.json`. Do not run `node expo-router/entry` on Render.
 
-## Action Safety
+## Prisma
 
-Action prompts can prepare intent for future integrations such as `draft_email`, `open_payment_app`, `call_contact`, `open_maps`, and `open_url`.
+Prisma schema: `backend/prisma/schema.prisma`
 
-Rules:
+Migrations:
 
-- The AI may suggest an action.
-- The user must confirm before anything continues.
-- Triggerly does not automatically send emails.
-- Triggerly does not automatically move money.
-- Triggerly does not read private messages.
+- `backend/prisma/migrations/0001_init`
+- `backend/prisma/migrations/0002_ai_trigger_agent`
 
-## Backend Connection Points
+Production commands:
 
-The screens call `src/features/reminders/api.ts`, which currently uses local storage. Later, `src/lib/apiClient.ts` can be wired to:
+```bash
+npx prisma generate
+npx prisma migrate deploy
+```
 
-- `POST /auth/register`
-- `POST /auth/login`
-- `GET /me`
-- `GET /reminders`
-- `POST /reminders`
-- `GET /reminders/:id`
-- `PATCH /reminders/:id`
-- `DELETE /reminders/:id`
-- `POST /reminders/:id/complete`
-- `POST /reminders/:id/snooze`
-- `POST /reminders/:id/events`
-- `GET /habits`
-- `POST /habits`
-- `PATCH /habits/:id/complete`
-- `POST /ai/parse-reminder`
+## CORS
+
+Backend CORS uses `CORS_ORIGINS` as a comma-separated allowlist. Browser origins not in the allowlist are rejected in production. Requests without an `Origin` header are allowed for mobile apps and server-to-server usage.
+
+Do not use wildcard CORS with credentials in production.
+
+## Common Deployment Errors
+
+Error: `npm ci requires package-lock.json`
+
+Fix:
+
+- commit `package-lock.json`, or
+- use `npm install` in Render build command.
+
+Error: Render says no open ports
+
+Fix:
+
+- read `process.env.PORT`,
+- listen on `0.0.0.0`,
+- expose `/health`.
+
+Error: Prisma cannot connect
+
+Fix:
+
+- confirm `DATABASE_URL`,
+- use Render internal DB URL for Render service,
+- do not wrap env value in quotes in Render dashboard,
+- run `prisma migrate deploy`.
+
+Error: CORS blocked
+
+Fix:
+
+- add the Vercel URL to `CORS_ORIGINS`,
+- do not use wildcard with credentials.
+
+Error: Mobile cannot reach backend
+
+Fix:
+
+- set `EXPO_PUBLIC_API_URL`,
+- use the deployed Render backend URL,
+- restart Expo after env changes.
+
+Error: Render tries to run `expo-router/entry`
+
+Fix:
+
+- deploy the backend with Root Directory `backend`,
+- deploy the Expo web export to Vercel with `npm run build:web`,
+- do not deploy the root Expo app as a Render Node service.

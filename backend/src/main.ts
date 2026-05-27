@@ -10,10 +10,28 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   const config = app.get(ConfigService);
   const corsOrigins = config.get<string[]>("corsOrigins") ?? [];
+  const nodeEnv = config.get<string>("nodeEnv");
 
   app.use(helmet());
   app.enableCors({
-    origin: corsOrigins,
+    origin: (origin, callback) => {
+      if (!origin) {
+        callback(null, true);
+        return;
+      }
+
+      if (corsOrigins.includes(origin)) {
+        callback(null, true);
+        return;
+      }
+
+      if (nodeEnv !== "production") {
+        callback(null, true);
+        return;
+      }
+
+      callback(new Error("Not allowed by CORS"), false);
+    },
     credentials: true
   });
   app.useGlobalPipes(
@@ -25,7 +43,6 @@ async function bootstrap() {
   );
   app.useGlobalFilters(new HttpExceptionFilter());
 
-  const nodeEnv = config.get<string>("nodeEnv");
   const enableSwagger = config.get<boolean>("enableSwagger");
   if (nodeEnv !== "production" || enableSwagger) {
     const swaggerConfig = new DocumentBuilder()
@@ -37,7 +54,7 @@ async function bootstrap() {
     SwaggerModule.setup("docs", app, SwaggerModule.createDocument(app, swaggerConfig));
   }
 
-  await app.listen(config.get<number>("port") ?? 3000);
+  await app.listen(config.get<number>("port") ?? 3000, "0.0.0.0");
 }
 
 bootstrap();

@@ -1,4 +1,5 @@
 import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
+import { Prisma } from "@prisma/client";
 import { ActionPromptStatus, ReminderEventType, ReminderStatus, ReminderType } from "@/common/enums";
 import { PrismaService } from "@/prisma/prisma.service";
 import { ReminderEventsService } from "@/events/reminder-events.service";
@@ -60,7 +61,7 @@ export class RemindersService {
                 create: {
                   userId,
                   actionType: dto.actionType,
-                  payload: dto.actionPayload,
+                  payload: dto.actionPayload as Prisma.InputJsonValue | undefined,
                   status: ActionPromptStatus.PENDING_CONFIRMATION
                 }
               }
@@ -106,12 +107,12 @@ export class RemindersService {
                 create: {
                   userId,
                   actionType: dto.actionType,
-                  payload: dto.actionPayload,
+                  payload: dto.actionPayload as Prisma.InputJsonValue | undefined,
                   status: ActionPromptStatus.PENDING_CONFIRMATION
                 },
                 update: {
                   actionType: dto.actionType,
-                  payload: dto.actionPayload,
+                  payload: dto.actionPayload as Prisma.InputJsonValue | undefined,
                   status: ActionPromptStatus.PENDING_CONFIRMATION
                 }
               }

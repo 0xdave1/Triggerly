@@ -17,6 +17,7 @@ import { TriggersModule } from "./triggers/triggers.module";
 import { VoiceModule } from "./voice/voice.module";
 import { ContactMemoriesModule } from "./contact-memories/contact-memories.module";
 import { ActionPromptsModule } from "./action-prompts/action-prompts.module";
+import { HealthModule } from "./health/health.module";
 
 @Module({
   imports: [
@@ -39,7 +40,8 @@ import { ActionPromptsModule } from "./action-prompts/action-prompts.module";
     PrivacyModule,
     VoiceModule,
     ContactMemoriesModule,
-    ActionPromptsModule
+    ActionPromptsModule,
+    HealthModule
   ]
 })
 export class AppModule {}

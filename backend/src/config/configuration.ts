@@ -10,5 +10,7 @@ export default () => ({
     .map((origin) => origin.trim())
     .filter(Boolean),
   redisUrl: process.env.REDIS_URL,
-  enableSwagger: process.env.ENABLE_SWAGGER === "true"
+  enableSwagger: process.env.ENABLE_SWAGGER === "true",
+  aiProvider: process.env.AI_PROVIDER ?? "heuristic",
+  pushProvider: process.env.PUSH_PROVIDER ?? "expo"
 });
