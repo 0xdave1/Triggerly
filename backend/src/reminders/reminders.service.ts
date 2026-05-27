@@ -184,7 +184,7 @@ export class RemindersService {
         status: ReminderStatus.SNOOZED,
         timeTrigger: {
           upsert: {
-            create: { triggerDateTime: snoozeUntil, timezone: "UTC" },
+            create: { triggerDateTime: snoozeUntil, timezone: "Africa/Lagos" },
             update: { triggerDateTime: snoozeUntil }
           }
         }

@@ -8,7 +8,7 @@ export async function registerLocationReminder(reminder: ReminderWithTriggers): 
   // TODO: Wire native background geofencing for production builds. Expo background
   // geofencing can require a custom dev client, platform QA, and background modes.
   // This MVP stores the trigger and supports foreground checks for development.
-  await Promise.resolve();
+  throw new Error("Location trigger saved, but background geofencing is not active in this MVP. Open Triggerly to check foreground location.");
 }
 
 export async function checkLocationReminderInForeground(reminder: ReminderWithTriggers): Promise<ForegroundLocationCheckResult> {

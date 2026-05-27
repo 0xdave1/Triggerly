@@ -1,5 +1,6 @@
 import { addMinutes, parseISO } from "date-fns";
 import { getNextHabitDueDate, isIsoToday } from "@/lib/dates";
+import { formatNigeriaDateTimeDisplay } from "@/lib/timezone";
 import type { ParsedReminderInput, ReminderStatus, ReminderType, ReminderWithTriggers } from "./types";
 
 export type ReminderFilter = "all" | "time" | "location" | "habit";
@@ -60,7 +61,7 @@ export function getTodayReminders(reminders: ReminderWithTriggers[]): ReminderWi
 }
 
 export function getReminderTriggerSummary(reminder: ReminderWithTriggers): string {
-  if (reminder.timeTrigger) return `Time: ${new Date(reminder.timeTrigger.triggerDateTime).toLocaleString()}`;
+  if (reminder.timeTrigger) return `Time: ${formatNigeriaDateTimeDisplay(reminder.timeTrigger.triggerDateTime)} WAT`;
   if (reminder.locationTrigger) return `${reminder.locationTrigger.triggerType} at ${reminder.locationTrigger.placeName}, ${reminder.locationTrigger.radiusMeters}m`;
   if (reminder.habit) return `${reminder.habit.frequencyType} every ${reminder.habit.frequencyCount}`;
   return "Trigger details not set";

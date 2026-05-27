@@ -183,8 +183,11 @@ async function scheduleReminderSideEffectsSafely(reminder: ReminderWithTriggers)
   if (reminder.locationTrigger) {
     try {
       await registerLocationReminder(reminder);
-    } catch {
-      lastReminderWarning = "Reminder saved, but location trigger setup needs to be retried on this device.";
+    } catch (error) {
+      lastReminderWarning =
+        error instanceof Error
+          ? error.message
+          : "Reminder saved, but location trigger setup needs to be retried on this device.";
     }
   }
 }
@@ -192,7 +195,10 @@ async function scheduleReminderSideEffectsSafely(reminder: ReminderWithTriggers)
 async function scheduleTimeReminderNotificationSafely(reminder: ReminderWithTriggers): Promise<void> {
   try {
     await scheduleTimeReminderNotification(reminder);
-  } catch {
-    lastReminderWarning = "Reminder saved, but local notification scheduling needs permission or retry.";
+  } catch (error) {
+    lastReminderWarning =
+      error instanceof Error && error.message.includes("Web reminders")
+        ? "Reminder saved. On web, time triggers alert only while Triggerly is open. Use the mobile app for background notifications."
+        : "Reminder saved, but local notification scheduling needs permission or retry.";
   }
 }

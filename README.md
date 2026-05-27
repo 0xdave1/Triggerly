@@ -151,6 +151,12 @@ EXPO_PUBLIC_APP_NAME=Triggerly
 
 Android and iOS builds should be produced through Expo/EAS later. Do not deploy the mobile app to Render.
 
+## Trigger Behavior
+
+- Time entry is interpreted as Nigeria time (`Africa/Lagos`) by default. Examples: `2026-05-27 18:00`, `tomorrow 6pm`, `6pm`.
+- On Vercel web, time reminders can alert only while Triggerly is open. Background notifications require Android/iOS builds with Expo notifications.
+- Location triggers are saved, but production background geofencing is not active yet. Triggerly shows this limitation at save time instead of pretending the geofence is fully armed.
+
 Correct Expo scripts:
 
 ```json

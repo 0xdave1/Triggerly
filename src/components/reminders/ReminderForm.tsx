@@ -15,6 +15,7 @@ import type { HabitFrequencyType, ReminderCreateInput, ReminderType, ReminderWit
 import { useParseReminderInput } from "@/features/reminders/hooks";
 import { parseReminderInput } from "@/features/reminders/utils";
 import { getFriendlyApiError } from "@/lib/apiClient";
+import { formatNigeriaDateTimeInput, parseNigeriaDateTimeInput } from "@/lib/timezone";
 import { TriggerTypeSelector } from "./TriggerTypeSelector";
 import { colors, spacing, typography } from "@/styles/theme";
 
@@ -32,7 +33,7 @@ export function ReminderForm({ initialReminder, initialQuickInput = "", onSubmit
   const [title, setTitle] = useState(initialReminder?.title ?? "");
   const [notes, setNotes] = useState(initialReminder?.notes ?? "");
   const [type, setType] = useState<ReminderType>(initialReminder?.type ?? "time");
-  const [triggerDateTime, setTriggerDateTime] = useState(initialReminder?.timeTrigger?.triggerDateTime ?? new Date(Date.now() + 3600000).toISOString());
+  const [triggerDateTime, setTriggerDateTime] = useState(formatNigeriaDateTimeInput(initialReminder?.timeTrigger?.triggerDateTime ?? new Date(Date.now() + 3600000)));
   const [placeName, setPlaceName] = useState(initialReminder?.locationTrigger?.placeName ?? "");
   const [latitude, setLatitude] = useState(initialReminder?.locationTrigger?.latitude?.toString() ?? "");
   const [longitude, setLongitude] = useState(initialReminder?.locationTrigger?.longitude?.toString() ?? "");
@@ -79,13 +80,23 @@ export function ReminderForm({ initialReminder, initialQuickInput = "", onSubmit
 
   const submit = async () => {
     setError(undefined);
+    let parsedTriggerDateTime: string | undefined;
+    if (type === "time" || type === "hybrid") {
+      try {
+        parsedTriggerDateTime = parseNigeriaDateTimeInput(triggerDateTime);
+      } catch (caught) {
+        setError(caught instanceof Error ? caught.message : "Enter a valid reminder time.");
+        return;
+      }
+    }
+
     const input: ReminderCreateInput = {
       title,
       notes,
       type,
       timeTrigger:
         type === "time" || type === "hybrid"
-          ? { triggerDateTime, timezone: APP_CONFIG.defaultTimezone }
+          ? { triggerDateTime: parsedTriggerDateTime!, timezone: APP_CONFIG.defaultTimezone }
           : undefined,
       locationTrigger:
         type === "location" || type === "hybrid"
@@ -149,8 +160,8 @@ export function ReminderForm({ initialReminder, initialQuickInput = "", onSubmit
 
       {type === "time" ? (
         <TerminalCard title="time_trigger.config">
-          <TerminalInput label="trigger_datetime" value={triggerDateTime} onChangeText={setTriggerDateTime} placeholder="2026-05-22T15:30:00.000Z" />
-          <Text style={styles.help}>iso_datetime_required · native_picker_pending</Text>
+          <TerminalInput label="trigger_time_wat" value={triggerDateTime} onChangeText={setTriggerDateTime} placeholder="2026-05-27 18:00" />
+          <Text style={styles.help}>nigeria_time_wat · examples: 2026-05-27 18:00, tomorrow 6pm, 6pm</Text>
         </TerminalCard>
       ) : null}
 

@@ -30,6 +30,9 @@ export async function registerNotificationActions(): Promise<void> {
 
 export async function scheduleTimeReminderNotification(reminder: ReminderWithTriggers): Promise<string | undefined> {
   if (!reminder.timeTrigger) return undefined;
+  if (Platform.OS === "web") {
+    throw new Error("Web reminders fire only while Triggerly is open in this MVP.");
+  }
 
   const permission = await requestNotificationPermission();
   if (permission !== "granted") {

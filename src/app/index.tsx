@@ -11,6 +11,7 @@ import { TerminalCard } from "@/components/ui/TerminalCard";
 import { TerminalHeader } from "@/components/ui/TerminalHeader";
 import { TerminalScreen } from "@/components/ui/TerminalScreen";
 import { useReminderActions, useReminders } from "@/features/reminders/hooks";
+import { useForegroundDueReminders } from "@/features/reminders/dueWatcher";
 import { filterReminders, getTodayReminders, parseReminderInput, type ReminderFilter } from "@/features/reminders/utils";
 import { groupErrandsByLocation } from "@/features/errands/grouping";
 import { getFriendlyApiError } from "@/lib/apiClient";
@@ -23,6 +24,7 @@ export default function HomeScreen() {
   const actions = useReminderActions();
 
   const reminders = remindersQuery.data ?? [];
+  useForegroundDueReminders(reminders);
   const visibleReminders = useMemo(() => filterReminders(reminders, filter), [filter, reminders]);
   const todayReminders = useMemo(() => getTodayReminders(reminders), [reminders]);
   const errandGroups = useMemo(() => groupErrandsByLocation(reminders), [reminders]);
