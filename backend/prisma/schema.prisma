@@ -59,10 +59,15 @@ enum DeliveryMode {
 
 enum ActionType {
   DRAFT_EMAIL
+  DRAFT_MESSAGE
   OPEN_PAYMENT_APP
+  PAYMENT_REMINDER
   CALL_CONTACT
   OPEN_MAPS
   OPEN_URL
+  CREATE_CALENDAR_EVENT
+  GENERATE_CHECKLIST
+  PREPARE_MEETING_NOTES
 }
 
 enum ActionPromptStatus {
@@ -70,6 +75,87 @@ enum ActionPromptStatus {
   CONFIRMED
   CANCELLED
   COMPLETED
+}
+
+enum ActionPromptEventType {
+  CREATED
+  UPDATED
+  CONFIRMED
+  CANCELLED
+  COMPLETED
+  CONTENT_GENERATED
+}
+
+enum TriggerType {
+  TIME
+  LOCATION_ARRIVAL
+  LOCATION_DEPARTURE
+  HABIT
+  WEATHER
+  EXCHANGE_RATE
+  PRICE
+  CONTACT
+  TRAVEL
+}
+
+enum TriggerStatus {
+  ACTIVE
+  DISABLED
+  COMPLETED
+  DELETED
+}
+
+enum MemoryType {
+  PERSON
+  PLACE
+  PRICE
+  DEBT
+  PROMISE
+  PREFERENCE
+  TRAVEL
+  ROUTINE
+  DOCUMENT
+  GENERAL
+}
+
+enum MemorySource {
+  MANUAL
+  AI_EXTRACTED
+  IMPORTED
+}
+
+enum MemoryStatus {
+  ACTIVE
+  ARCHIVED
+  DELETED
+}
+
+enum MemoryEventType {
+  CREATED
+  UPDATED
+  ARCHIVED
+  DELETED
+  USED_IN_TRIGGER
+}
+
+enum LiveContextTriggerType {
+  WEATHER
+  EXCHANGE_RATE
+  PRICE
+  TRAVEL
+}
+
+enum LiveContextTriggerStatus {
+  ACTIVE
+  PAUSED
+  TRIGGERED
+  DELETED
+}
+
+enum PriceLogSource {
+  MANUAL
+  OCR
+  AI_PARSE
 }
 
 model User {
@@ -86,7 +172,14 @@ model User {
   voiceSetting    UserVoiceSetting?
   contactMemories ContactMemory[]
   actionPrompts   ActionPrompt[]
+  actionPromptEvents ActionPromptEvent[]
   intentParseLogs IntentParseLog[]
+  triggers        Trigger[]
+  habitTriggers   HabitTrigger[]
+  liveContextTriggers LiveContextTrigger[]
+  priceLogs       PriceLog[]
+  memories        Memory[]
+  memoryEvents    MemoryEvent[]
 }
 
 model Reminder {
@@ -112,6 +205,7 @@ model Reminder {
   habit           Habit?
   events          ReminderEvent[]
   actionPrompt    ActionPrompt?
+  triggers        Trigger[]
 
   @@index([userId, status])
   @@index([userId, type])
@@ -159,6 +253,133 @@ model Habit {
   @@index([nextDueAt])
 }
 
+model Trigger {
+  id                   String        @id @default(cuid())
+  userId               String
+  reminderId           String?
+  type                 TriggerType
+  status               TriggerStatus @default(ACTIVE)
+  title                String?
+  configuration        Json?
+  requiresConfirmation Boolean       @default(true)
+  confirmedAt          DateTime?
+  createdAt            DateTime      @default(now())
+  updatedAt            DateTime      @updatedAt
+  user                 User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  reminder             Reminder?     @relation(fields: [reminderId], references: [id], onDelete: SetNull)
+  habitTrigger         HabitTrigger?
+
+  @@index([userId, type, status])
+  @@index([reminderId])
+}
+
+model HabitTrigger {
+  id              String              @id @default(cuid())
+  userId          String
+  triggerId       String?             @unique
+  frequencyType   HabitFrequencyType
+  frequencyCount  Int
+  lastCompletedAt DateTime?
+  nextDueAt       DateTime?
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+  user            User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  trigger         Trigger?            @relation(fields: [triggerId], references: [id], onDelete: SetNull)
+
+  @@index([userId, nextDueAt])
+}
+
+model LiveContextTrigger {
+  id              String                   @id @default(cuid())
+  userId          String
+  type            LiveContextTriggerType
+  title           String
+  condition       Json
+  status          LiveContextTriggerStatus @default(ACTIVE)
+  lastCheckedAt   DateTime?
+  lastTriggeredAt DateTime?
+  createdAt       DateTime                 @default(now())
+  updatedAt       DateTime                 @updatedAt
+  user            User                     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, type, status])
+  @@index([userId, createdAt])
+}
+
+model PriceLog {
+  id            String         @id @default(cuid())
+  userId        String
+  itemName      String
+  price         Float
+  currency      String         @default("NGN")
+  quantityLabel String?
+  placeName     String?
+  latitude      Float?
+  longitude     Float?
+  loggedAt      DateTime       @default(now())
+  source        PriceLogSource @default(MANUAL)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, itemName, loggedAt])
+}
+
+model WeatherProviderCache {
+  id          String   @id @default(cuid())
+  locationKey String   @unique
+  data        Json
+  expiresAt   DateTime
+  createdAt   DateTime @default(now())
+
+  @@index([expiresAt])
+}
+
+model ExchangeRateCache {
+  id        String   @id @default(cuid())
+  pair      String   @unique
+  data      Json
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([expiresAt])
+}
+
+model Memory {
+  id         String        @id @default(cuid())
+  userId     String
+  type       MemoryType
+  title      String
+  body       String
+  entities   Json?
+  source     MemorySource  @default(MANUAL)
+  confidence Float?
+  status     MemoryStatus  @default(ACTIVE)
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+  archivedAt DateTime?
+  deletedAt  DateTime?
+  user       User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  events     MemoryEvent[]
+
+  @@index([userId, type, status])
+  @@index([userId, status])
+}
+
+model MemoryEvent {
+  id        String          @id @default(cuid())
+  userId    String
+  memoryId  String
+  eventType MemoryEventType
+  metadata  Json?
+  createdAt DateTime        @default(now())
+  user      User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  memory    Memory          @relation(fields: [memoryId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([memoryId, createdAt])
+}
+
 model ReminderEvent {
   id          String            @id @default(cuid())
   reminderId  String
@@ -188,15 +409,38 @@ model Device {
 }
 
 model UserPrivacySetting {
-  id                String    @id @default(cuid())
-  userId            String    @unique
-  locationEnabled   Boolean   @default(false)
-  voiceInputEnabled Boolean   @default(false)
-  aiParsingEnabled  Boolean   @default(true)
-  dataRetentionDays Int?
-  createdAt         DateTime  @default(now())
-  updatedAt         DateTime  @updatedAt
-  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id                              String    @id @default(cuid())
+  userId                          String    @unique
+  locationEnabled                 Boolean   @default(false)
+  voiceInputEnabled               Boolean   @default(false)
+  aiParsingEnabled                Boolean   @default(true)
+  dataRetentionDays               Int?
+  locationTriggersEnabled         Boolean   @default(true)
+  backgroundLocationEnabled       Boolean   @default(false)
+  microphoneInputEnabled          Boolean   @default(false)
+  voiceNotificationsEnabled       Boolean   @default(false)
+  cloudSyncEnabled                Boolean   @default(true)
+  contactAccessEnabled            Boolean   @default(false)
+  emailDraftingEnabled            Boolean   @default(false)
+  messageDraftingEnabled          Boolean   @default(false)
+  paymentRemindersEnabled         Boolean   @default(true)
+  paymentActionsEnabled           Boolean   @default(false)
+  calendarIntegrationEnabled      Boolean   @default(false)
+  screenshotReceiptScanningEnabled Boolean  @default(false)
+  smartSuggestionsEnabled         Boolean   @default(true)
+  memoryEnabled                   Boolean   @default(true)
+  contactMemoryEnabled            Boolean   @default(false)
+  habitLearningEnabled            Boolean   @default(false)
+  weatherTriggersEnabled          Boolean   @default(false)
+  exchangeRateTriggersEnabled     Boolean   @default(false)
+  priceMemoryEnabled              Boolean   @default(true)
+  travelContextEnabled            Boolean   @default(false)
+  analyticsEnabled                Boolean   @default(false)
+  crashReportsEnabled             Boolean   @default(false)
+  dataExportEnabled               Boolean   @default(true)
+  createdAt                       DateTime  @default(now())
+  updatedAt                       DateTime  @updatedAt
+  user                            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model UserVoiceSetting {
@@ -228,18 +472,38 @@ model ContactMemory {
 }
 
 model ActionPrompt {
-  id         String             @id @default(cuid())
-  userId     String
-  reminderId String?            @unique
-  actionType ActionType
-  payload    Json?
-  status     ActionPromptStatus @default(PENDING_CONFIRMATION)
-  createdAt  DateTime           @default(now())
-  updatedAt  DateTime           @updatedAt
-  user       User               @relation(fields: [userId], references: [id], onDelete: Cascade)
-  reminder   Reminder?          @relation(fields: [reminderId], references: [id], onDelete: SetNull)
+  id               String              @id @default(cuid())
+  userId           String
+  reminderId       String?             @unique
+  actionType       ActionType
+  title            String
+  payload          Json?
+  generatedContent String?
+  status           ActionPromptStatus  @default(PENDING_CONFIRMATION)
+  sensitive        Boolean             @default(false)
+  createdAt        DateTime            @default(now())
+  updatedAt        DateTime            @updatedAt
+  confirmedAt      DateTime?
+  completedAt      DateTime?
+  user             User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  reminder         Reminder?           @relation(fields: [reminderId], references: [id], onDelete: SetNull)
+  events           ActionPromptEvent[]
 
   @@index([userId, status])
+}
+
+model ActionPromptEvent {
+  id             String                @id @default(cuid())
+  userId         String
+  actionPromptId String
+  eventType      ActionPromptEventType
+  metadata       Json?
+  createdAt      DateTime              @default(now())
+  user           User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  actionPrompt   ActionPrompt          @relation(fields: [actionPromptId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([actionPromptId, createdAt])
 }
 
 model IntentParseLog {

@@ -1,6 +1,7 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Alert, StyleSheet, Text, View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
+import { IntentConfirmationCard } from "@/components/reminders/IntentConfirmationCard";
 import { Select } from "@/components/ui/Select";
 import { TerminalButton } from "@/components/ui/TerminalButton";
 import { TerminalCard } from "@/components/ui/TerminalCard";
@@ -9,10 +10,17 @@ import { TerminalInput } from "@/components/ui/TerminalInput";
 import { TerminalScreen } from "@/components/ui/TerminalScreen";
 import { TerminalStatRow } from "@/components/ui/TerminalStatRow";
 import { APP_CONFIG } from "@/constants/config";
-import { parseTriggerIntent } from "@/features/aiTrigger/parser";
+import { useActionPromptActions } from "@/features/action-prompts/hooks";
+import type { ActionPromptType } from "@/features/action-prompts/types";
+import { useLiveContextActions } from "@/features/live-context/hooks";
+import { useMemoryActions } from "@/features/memory/hooks";
 import { consumeReminderApiWarning } from "@/features/reminders/api";
 import { useCreateReminder } from "@/features/reminders/hooks";
 import type { DeliveryMode, ReminderCreateInput, TriggerIntentType } from "@/features/reminders/types";
+import { canConfirmIntent, getIntentGateMessage } from "@/features/trigger-intent/intentConfirmation";
+import { useParseIntent } from "@/features/trigger-intent/hooks";
+import { parseTriggerIntent } from "@/features/trigger-intent/parser";
+import type { ParsedIntent } from "@/features/trigger-intent/types";
 import { getFriendlyApiError } from "@/lib/apiClient";
 import { colors, spacing, typography } from "@/styles/theme";
 
@@ -21,8 +29,12 @@ const triggerOptions: Array<{ label: string; value: TriggerIntentType }> = [
   { label: "location_arrival", value: "location_arrival" },
   { label: "location_departure", value: "location_departure" },
   { label: "habit", value: "habit" },
+  { label: "weather", value: "weather" },
+  { label: "exchange_rate", value: "exchange_rate" },
+  { label: "price", value: "price" },
+  { label: "travel", value: "travel" },
+  { label: "action_confirmation", value: "action_confirmation" },
   { label: "contact", value: "contact" },
-  { label: "errand_group", value: "errand_group" },
   { label: "action_prompt", value: "action_prompt" }
 ];
 
@@ -36,128 +48,173 @@ const deliveryOptions: Array<{ label: string; value: DeliveryMode }> = [
 
 export default function TriggerConfirmationScreen() {
   const params = useLocalSearchParams<{ input?: string }>();
-  const initialIntent = useMemo(() => parseTriggerIntent(params.input ?? ""), [params.input]);
+  const input = params.input ?? "";
+  const localIntent = useMemo(() => parseTriggerIntent(input), [input]);
+  const parseIntent = useParseIntent();
   const createReminder = useCreateReminder();
-  const [taskTitle, setTaskTitle] = useState(initialIntent.taskTitle);
-  const [triggerType, setTriggerType] = useState<TriggerIntentType>(initialIntent.triggerType);
-  const [locationCandidate, setLocationCandidate] = useState(initialIntent.locationCandidate ?? "");
-  const [timeCandidate, setTimeCandidate] = useState(initialIntent.timeCandidate ?? new Date(Date.now() + 3600000).toISOString());
-  const [contactCandidate, setContactCandidate] = useState(initialIntent.contactCandidate ?? "");
-  const [deliveryMode, setDeliveryMode] = useState<DeliveryMode>(initialIntent.suggestedDeliveryMode);
-  const [voiceScript, setVoiceScript] = useState(initialIntent.suggestedVoiceScript);
+  const memoryActions = useMemoryActions();
+  const actionPrompts = useActionPromptActions();
+  const liveContext = useLiveContextActions();
+  const [parsed, setParsed] = useState<ParsedIntent>();
+  const [source, setSource] = useState<"backend" | "local_fallback">("local_fallback");
+  const [taskTitle, setTaskTitle] = useState(localIntent.taskTitle);
+  const [triggerType, setTriggerType] = useState<TriggerIntentType>(localIntent.triggerType);
+  const [deliveryMode, setDeliveryMode] = useState<DeliveryMode>(localIntent.suggestedDeliveryMode);
+  const [voiceScript, setVoiceScript] = useState(localIntent.suggestedVoiceScript);
   const [error, setError] = useState<string>();
 
-  const save = async () => {
+  useEffect(() => {
+    if (!input.trim()) return;
+    parseIntent.mutate(input, {
+      onSuccess: ({ parsed: next, source: nextSource }) => {
+        setParsed(next);
+        setSource(nextSource);
+        setTaskTitle(next.taskTitle ?? localIntent.taskTitle);
+        setTriggerType((next.triggerType as TriggerIntentType | undefined) ?? localIntent.triggerType);
+        setDeliveryMode((String(next.suggestedDeliveryMode ?? localIntent.suggestedDeliveryMode).toLowerCase() as DeliveryMode) ?? "push");
+        setVoiceScript(next.suggestedVoiceScript ?? localIntent.suggestedVoiceScript);
+      },
+      onError: (caught) => setError(getFriendlyApiError(caught))
+    });
+  }, [input]);
+
+  const confirm = async () => {
+    if (!parsed) return;
     setError(undefined);
-    const input = buildReminderInput();
     try {
-      await createReminder.mutateAsync(input);
-      const warning = consumeReminderApiWarning();
-      if (warning) Alert.alert("Saved with warning", warning);
+      if (parsed.intentType === "memory" || parsed.intentType === "price_log" || parsed.intentType === "debt_memory" || parsed.intentType === "promise_memory") {
+        await memoryActions.confirmFromIntent.mutateAsync({
+          parsedIntent: { ...parsed, taskTitle: taskTitle || parsed.taskTitle },
+          overrides: {
+            title: taskTitle || parsed.taskTitle || "User-approved memory",
+            body: taskTitle || parsed.taskTitle || "Confirmed from Triggerly intent"
+          }
+        });
+      } else if (parsed.intentType === "action_prompt" && parsed.actionCandidate) {
+        await actionPrompts.create.mutateAsync({
+          actionType: parsed.actionCandidate.actionType.toLowerCase() as ActionPromptType,
+          payload: parsed.actionCandidate.payload
+        });
+      } else if (parsed.triggerType === "weather") {
+        await liveContext.createWeatherTrigger.mutateAsync({
+          confirmed: true,
+          location: String(parsed.weatherCandidate?.location ?? parsed.locationCandidate?.placeName ?? "Lagos")
+        });
+      } else if (parsed.triggerType === "exchange_rate") {
+        await liveContext.createExchangeRateTrigger.mutateAsync({
+          confirmed: true,
+          base: String(parsed.exchangeRateCandidate?.base ?? "USD"),
+          quote: String(parsed.exchangeRateCandidate?.quote ?? "NGN"),
+          targetRate: Number(parsed.exchangeRateCandidate?.targetRate ?? 0) || undefined
+        });
+      } else {
+        await createReminder.mutateAsync(buildReminderInput(parsed, taskTitle, triggerType, deliveryMode, voiceScript));
+        const warning = consumeReminderApiWarning();
+        if (warning) Alert.alert("Saved with warning", warning);
+      }
       router.replace("/");
     } catch (caught) {
       setError(getFriendlyApiError(caught));
     }
   };
 
-  const buildReminderInput = (): ReminderCreateInput => {
-    const base = {
-      title: taskTitle,
-      deliveryMode,
-      voiceScript,
-      voiceEnabled: deliveryMode === "voice" || deliveryMode === "voice_and_push",
-      contactName: contactCandidate || undefined,
-      actionType: initialIntent.actionType
-    };
-
-    if (triggerType === "location_arrival" || triggerType === "location_departure" || triggerType === "errand_group") {
-      return {
-        ...base,
-        type: "location",
-        locationTrigger: {
-          placeName: locationCandidate || "Selected place",
-          latitude: 0,
-          longitude: 0,
-          radiusMeters: 250,
-          triggerType: triggerType === "location_departure" ? "departure" : "arrival"
-        }
-      };
-    }
-
-    if (triggerType === "habit") {
-      return {
-        ...base,
-        type: "habit",
-        habit: {
-          frequencyType: initialIntent.frequency ?? "weekly",
-          frequencyCount: 1
-        }
-      };
-    }
-
-    return {
-      ...base,
-      type: "time",
-      timeTrigger: {
-        triggerDateTime: normalizeTimeCandidate(timeCandidate),
-        timezone: APP_CONFIG.defaultTimezone
-      }
-    };
-  };
+  const gateMessage = getIntentGateMessage(parsed);
 
   return (
     <TerminalScreen>
       <TerminalHeader title="ai_trigger_engine" subtitle="intent_parsed · confirmation_required" status="action_locked" />
-      <TerminalCard title="intent_parsed" active>
-        <TerminalStatRow label="confidence" value={`${Math.round(initialIntent.confidence * 100)}%`} tone="green" />
-        <TerminalStatRow label="requires_confirmation" value="enabled" tone="amber" />
+      <IntentConfirmationCard intent={parsed} source={source} />
+      {parseIntent.isPending ? <Text style={styles.help}>parsing_intent...</Text> : null}
+      {gateMessage ? <Text style={styles.warning}>{gateMessage}</Text> : null}
+
+      {parsed?.memoryCandidate || parsed?.intentType === "price_log" || parsed?.intentType === "debt_memory" || parsed?.intentType === "promise_memory" ? (
+        <TerminalCard title="memory_confirmation" tone="cyan">
+          <Text style={styles.help}>Triggerly found something worth remembering. It will only be saved if you confirm.</Text>
+          <TerminalStatRow label="save_mode" value="user_approved_only" tone="green" />
+        </TerminalCard>
+      ) : null}
+
+      <TerminalCard title="editable_confirmation" active>
         <TerminalInput label="task_title" value={taskTitle} onChangeText={setTaskTitle} />
         <Select label="trigger_type" value={triggerType} options={triggerOptions} onChange={setTriggerType} />
         <Select label="delivery_mode" value={deliveryMode} options={deliveryOptions} onChange={setDeliveryMode} />
-      </TerminalCard>
-
-      {(triggerType === "location_arrival" || triggerType === "location_departure" || triggerType === "errand_group") ? (
-        <TerminalCard title="location_candidate" tone="cyan">
-          <TerminalInput label="place" value={locationCandidate} onChangeText={setLocationCandidate} placeholder="Shoprite" />
-          <Text style={styles.help}>coordinates_required_later · open full location picker after saving if needed</Text>
-        </TerminalCard>
-      ) : null}
-
-      {triggerType === "time" ? (
-        <TerminalCard title="time_candidate">
-          <TerminalInput label="time" value={timeCandidate} onChangeText={setTimeCandidate} />
-        </TerminalCard>
-      ) : null}
-
-      {triggerType === "contact" ? (
-        <TerminalCard title="contact_placeholder">
-          <TerminalInput label="contact_name" value={contactCandidate} onChangeText={setContactCandidate} placeholder="David" />
-          <Text style={styles.help}>contacts_permission_requested_only_when_contact_picker_is_used</Text>
-        </TerminalCard>
-      ) : null}
-
-      {triggerType === "action_prompt" ? (
-        <TerminalCard title="user_approval_required" tone="amber">
-          <TerminalStatRow label="action_type" value={initialIntent.actionType ?? "manual_confirmation"} tone="amber" />
-          <Text style={styles.help}>Triggerly can prepare actions, but will not send money or emails automatically.</Text>
-        </TerminalCard>
-      ) : null}
-
-      <TerminalCard title="voice_nudge_ready">
         <TerminalInput label="voice_script" value={voiceScript} onChangeText={setVoiceScript} multiline />
       </TerminalCard>
 
+      {parsed?.actionCandidate ? (
+        <TerminalCard title="action_prompt" tone="amber">
+          <TerminalStatRow label="action_type" value={parsed.actionCandidate.actionType.toLowerCase()} tone="amber" />
+          <TerminalStatRow label="auto_execute" value="disabled" tone="green" />
+          <Text style={styles.help}>No payment, email, or message is sent automatically.</Text>
+        </TerminalCard>
+      ) : null}
+
       {error ? <Text style={styles.error}>{error}</Text> : null}
       <View style={styles.row}>
-        <TerminalButton loading={createReminder.isPending} disabled={!taskTitle.trim()} onPress={save}>
-          ARM_TRIGGER
+        <TerminalButton loading={createReminder.isPending || memoryActions.confirmFromIntent.isPending || actionPrompts.create.isPending} disabled={!canConfirmIntent(parsed)} onPress={confirm}>
+          CONFIRM
         </TerminalButton>
         <TerminalButton variant="secondary" onPress={() => router.back()}>
-          EDIT_TRIGGER
+          EDIT
+        </TerminalButton>
+        <TerminalButton variant="ghost" onPress={() => Alert.alert("clarification", parsed?.clarificationQuestion ?? "What should Triggerly do with this?")}>
+          ASK_CLARIFICATION
+        </TerminalButton>
+        <TerminalButton variant="danger" onPress={() => router.replace("/")}>
+          DISCARD
         </TerminalButton>
       </View>
     </TerminalScreen>
   );
+}
+
+function buildReminderInput(intent: ParsedIntent, title: string, triggerType: TriggerIntentType, deliveryMode: DeliveryMode, voiceScript: string): ReminderCreateInput {
+  const base = {
+    title: title || intent.taskTitle || "Untitled trigger",
+    deliveryMode,
+    voiceScript,
+    voiceEnabled: deliveryMode === "voice" || deliveryMode === "voice_and_push"
+  };
+
+  if (triggerType === "location_arrival" || triggerType === "location_departure") {
+    return {
+      ...base,
+      type: "location",
+      locationTrigger: {
+        placeName: String(intent.locationCandidate?.placeName ?? "Selected place"),
+        latitude: Number(intent.locationCandidate?.latitude ?? 0),
+        longitude: Number(intent.locationCandidate?.longitude ?? 0),
+        radiusMeters: 250,
+        triggerType: triggerType === "location_departure" ? "departure" : "arrival"
+      }
+    };
+  }
+
+  if (triggerType === "habit") {
+    return {
+      ...base,
+      type: "habit",
+      habit: {
+        frequencyType: frequencyFrom(intent),
+        frequencyCount: Number(intent.habitCandidate?.frequencyCount ?? 1)
+      }
+    };
+  }
+
+  return {
+    ...base,
+    type: "time",
+    timeTrigger: {
+      triggerDateTime: normalizeTimeCandidate(String(intent.timeCandidate?.phrase ?? new Date(Date.now() + 3600000).toISOString())),
+      timezone: APP_CONFIG.defaultTimezone
+    }
+  };
+}
+
+function frequencyFrom(intent: ParsedIntent) {
+  const frequency = String(intent.habitCandidate?.frequency ?? "weekly").toLowerCase();
+  if (frequency === "daily" || frequency === "weekly" || frequency === "monthly") return frequency;
+  return "custom";
 }
 
 function normalizeTimeCandidate(value: string): string {
@@ -173,6 +230,12 @@ const styles = StyleSheet.create({
   },
   help: {
     color: colors.textMuted,
+    fontFamily: typography.mono,
+    fontSize: typography.small,
+    lineHeight: 20
+  },
+  warning: {
+    color: colors.warning,
     fontFamily: typography.mono,
     fontSize: typography.small,
     lineHeight: 20

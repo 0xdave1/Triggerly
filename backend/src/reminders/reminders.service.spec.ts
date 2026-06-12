@@ -6,7 +6,7 @@ import { TriggersService } from "@/triggers/triggers.service";
 import { RemindersService } from "./reminders.service";
 
 describe("RemindersService", () => {
-  const triggers = new TriggersService();
+  const triggers = new TriggersService({} as any, {} as any);
   const events = { create: jest.fn(), createForOwnedReminder: jest.fn() } as unknown as ReminderEventsService;
   const notifications = {
     scheduleTimeReminderNotification: jest.fn(),

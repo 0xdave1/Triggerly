@@ -42,9 +42,11 @@ const styles = StyleSheet.create({
   },
   label: {
     color: colors.textMuted,
-    fontFamily: typography.mono,
-    fontSize: typography.small,
-    fontWeight: "900"
+    fontFamily: typography.code,
+    fontSize: 10,
+    fontWeight: "700",
+    letterSpacing: 1.3,
+    textTransform: "uppercase"
   },
   options: {
     flexDirection: "row",
@@ -52,7 +54,7 @@ const styles = StyleSheet.create({
     gap: spacing.sm
   },
   option: {
-    backgroundColor: colors.black,
+    backgroundColor: colors.surface,
     borderColor: colors.border,
     borderRadius: radii.md,
     borderWidth: 1,
@@ -62,17 +64,16 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.sm
   },
   activeOption: {
-    backgroundColor: "rgba(0,255,102,0.08)",
+    backgroundColor: colors.primary,
     borderColor: colors.primary
   },
   optionText: {
     color: colors.textMuted,
-    fontFamily: typography.mono,
+    fontFamily: typography.sans,
     fontSize: typography.small,
-    fontWeight: "900",
-    letterSpacing: 1
+    fontWeight: "700"
   },
   activeText: {
-    color: colors.primary
+    color: colors.black
   }
 });

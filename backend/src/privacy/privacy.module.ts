@@ -4,6 +4,7 @@ import { PrivacyService } from "./privacy.service";
 
 @Module({
   controllers: [PrivacyController],
-  providers: [PrivacyService]
+  providers: [PrivacyService],
+  exports: [PrivacyService]
 })
 export class PrivacyModule {}

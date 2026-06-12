@@ -1,6 +1,6 @@
 import { Injectable } from "@nestjs/common";
-import { Prisma } from "@prisma/client";
 import { ReminderType } from "@/common/enums";
+import { toPrismaJson } from "@/common/utils/prisma-json";
 import { PrismaService } from "@/prisma/prisma.service";
 import { AiTriggerParserService } from "./ai-trigger-parser.service";
 
@@ -27,7 +27,7 @@ export class AiService {
       data: {
         userId,
         input,
-        parsedOutput: parsed as unknown as Prisma.InputJsonValue,
+        parsedOutput: toPrismaJson(parsed),
         confidence: parsed.confidence
       }
     });

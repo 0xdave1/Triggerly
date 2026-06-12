@@ -71,6 +71,12 @@ function RootStack() {
       <Stack.Screen name="login" options={{ title: "Login" }} />
       <Stack.Screen name="register" options={{ title: "Register" }} />
       <Stack.Screen name="habits" options={{ title: "Habits" }} />
+      <Stack.Screen name="triggers/index" options={{ title: "Trigger dashboard" }} />
+      <Stack.Screen name="live-context" options={{ title: "Live context" }} />
+      <Stack.Screen name="memory" options={{ title: "Memory" }} />
+      <Stack.Screen name="actions" options={{ title: "Actions" }} />
+      <Stack.Screen name="voice" options={{ title: "Voice" }} />
+      <Stack.Screen name="briefing" options={{ title: "Briefing" }} />
       <Stack.Screen name="settings" options={{ title: "Settings and Privacy" }} />
       <Stack.Screen name="triggers/confirm" options={{ title: "Confirm trigger" }} />
       <Stack.Screen name="reminders/new" options={{ title: "Reminder" }} />

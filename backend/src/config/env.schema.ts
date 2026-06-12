@@ -11,6 +11,10 @@ export const envSchema = z.object({
   ENABLE_SWAGGER: z.string().optional().default("false"),
   AI_PROVIDER: z.string().optional().default("heuristic"),
   OPENAI_API_KEY: z.string().optional().default(""),
+  WEATHER_PROVIDER: z.string().optional().default(""),
+  WEATHER_API_KEY: z.string().optional().default(""),
+  EXCHANGE_RATE_PROVIDER: z.string().optional().default(""),
+  EXCHANGE_RATE_API_KEY: z.string().optional().default(""),
   EXPO_ACCESS_TOKEN: z.string().optional().default(""),
   PUSH_PROVIDER: z.string().optional().default("expo"),
   SENTRY_DSN: z.string().optional().default("")

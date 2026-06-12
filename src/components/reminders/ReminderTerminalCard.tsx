@@ -17,10 +17,10 @@ export function ReminderTerminalCard({ reminder, onPress, onComplete, onSnooze }
   return (
     <TerminalCard active={reminder.status === "active"} tone={reminder.type === "location" ? "cyan" : reminder.status === "snoozed" ? "amber" : "green"}>
       <View style={styles.header}>
-        <Text style={styles.kind}>[{reminder.type}_trigger]</Text>
+        <Text style={styles.kind}>{reminder.type} reminder</Text>
         <TerminalBadge label={statusLabel(reminder.status)} tone={statusTone(reminder.status, reminder.type)} />
       </View>
-      <TerminalStatRow label="task" value={reminder.title} tone="green" />
+      <Text style={styles.task}>{reminder.title}</Text>
       {reminder.locationTrigger ? (
         <>
           <TerminalStatRow label="place" value={reminder.locationTrigger.placeName} tone="cyan" />
@@ -31,21 +31,20 @@ export function ReminderTerminalCard({ reminder, onPress, onComplete, onSnooze }
       {reminder.habit ? <TerminalStatRow label="frequency" value={`${reminder.habit.frequencyCount}x ${reminder.habit.frequencyType}`} tone="amber" /> : null}
       {reminder.deliveryMode ? <TerminalStatRow label="delivery_mode" value={reminder.deliveryMode} tone={reminder.voiceEnabled ? "cyan" : "muted"} /> : null}
       {reminder.actionType ? <TerminalStatRow label="action_locked" value="user_approval_required" tone="amber" /> : null}
-      <TerminalStatRow label="privacy" value={reminder.locationTrigger ? "location only" : "user-defined"} tone="muted" />
       <View style={styles.actions}>
         {onComplete ? (
           <TerminalButton variant="secondary" onPress={onComplete}>
-            done
+            Done
           </TerminalButton>
         ) : null}
         {onSnooze ? (
           <TerminalButton variant="ghost" onPress={onSnooze}>
-            snooze
+            Snooze
           </TerminalButton>
         ) : null}
         {onPress ? (
           <TerminalButton variant="ghost" onPress={onPress}>
-            edit
+            Details
           </TerminalButton>
         ) : null}
       </View>
@@ -74,13 +73,20 @@ const styles = StyleSheet.create({
     justifyContent: "space-between"
   },
   kind: {
-    color: colors.text,
+    color: colors.textMuted,
     flex: 1,
-    fontFamily: typography.mono,
-    fontSize: 13,
-    fontWeight: "900",
-    letterSpacing: 1.4,
+    fontFamily: typography.code,
+    fontSize: 10,
+    fontWeight: "700",
+    letterSpacing: 1.2,
     textTransform: "uppercase"
+  },
+  task: {
+    color: colors.text,
+    fontFamily: typography.sans,
+    fontSize: 20,
+    fontWeight: "700",
+    lineHeight: 27
   },
   actions: {
     flexDirection: "row",

@@ -1,7 +1,6 @@
-import { useEffect, useRef, useState } from "react";
-import { Animated, StyleSheet, Text, TextInput, TextInputProps, View } from "react-native";
+import { useState } from "react";
+import { StyleSheet, Text, TextInput, TextInputProps, View } from "react-native";
 import { colors, radii, spacing, typography } from "@/styles/theme";
-import { useReducedMotion } from "./animation";
 
 type TerminalInputProps = TextInputProps & {
   label: string;
@@ -11,26 +10,11 @@ type TerminalInputProps = TextInputProps & {
 
 export function TerminalInput({ label, error, command = false, style, onFocus, onBlur, ...props }: TerminalInputProps) {
   const [focused, setFocused] = useState(false);
-  const reducedMotion = useReducedMotion();
-  const cursorOpacity = useRef(new Animated.Value(1)).current;
-
-  useEffect(() => {
-    if (!focused || reducedMotion) return;
-    const animation = Animated.loop(
-      Animated.sequence([
-        Animated.timing(cursorOpacity, { toValue: 0, duration: 520, useNativeDriver: true }),
-        Animated.timing(cursorOpacity, { toValue: 1, duration: 520, useNativeDriver: true })
-      ])
-    );
-    animation.start();
-    return () => animation.stop();
-  }, [cursorOpacity, focused, reducedMotion]);
 
   return (
     <View style={styles.field}>
       <Text style={styles.label}>{label}</Text>
       <View style={[styles.inputWrap, focused && styles.focused]}>
-        {command ? <Text style={styles.prompt}>{">"}</Text> : null}
         <TextInput
           placeholderTextColor={colors.textMuted}
           selectionColor={colors.primary}
@@ -45,7 +29,6 @@ export function TerminalInput({ label, error, command = false, style, onFocus, o
           }}
           {...props}
         />
-        {command && focused ? <Animated.Text style={[styles.cursor, { opacity: cursorOpacity }]}>_</Animated.Text> : null}
       </View>
       {error ? <Text style={styles.error}>{error}</Text> : null}
     </View>
@@ -58,15 +41,15 @@ const styles = StyleSheet.create({
   },
   label: {
     color: colors.textMuted,
-    fontFamily: typography.mono,
-    fontSize: 12,
-    fontWeight: "900",
-    letterSpacing: 1.2,
-    textTransform: "lowercase"
+    fontFamily: typography.code,
+    fontSize: 10,
+    fontWeight: "700",
+    letterSpacing: 1.4,
+    textTransform: "uppercase"
   },
   inputWrap: {
     alignItems: "center",
-    backgroundColor: colors.black,
+    backgroundColor: colors.surface,
     borderColor: colors.border,
     borderRadius: radii.md,
     borderWidth: 1,
@@ -75,34 +58,22 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md
   },
   focused: {
-    borderColor: colors.primary
-  },
-  prompt: {
-    color: colors.primary,
-    fontFamily: typography.mono,
-    fontSize: typography.body,
-    fontWeight: "900",
-    marginRight: spacing.sm
+    borderColor: colors.borderStrong,
+    backgroundColor: colors.surfaceRaised
   },
   input: {
     color: colors.text,
     flex: 1,
-    fontFamily: typography.mono,
+    fontFamily: typography.sans,
     fontSize: typography.body,
     paddingVertical: spacing.md
   },
   commandInput: {
-    color: colors.success
-  },
-  cursor: {
-    color: colors.primary,
-    fontFamily: typography.mono,
-    fontSize: typography.body,
-    fontWeight: "900"
+    color: colors.text
   },
   error: {
     color: colors.danger,
-    fontFamily: typography.mono,
+    fontFamily: typography.sans,
     fontSize: typography.small
   }
 });

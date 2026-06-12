@@ -1,6 +1,6 @@
 import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
 import { Prisma } from "@prisma/client";
-import { ActionPromptStatus, ReminderEventType, ReminderStatus, ReminderType } from "@/common/enums";
+import { ActionPromptStatus, ActionType, ReminderEventType, ReminderStatus, ReminderType } from "@/common/enums";
 import { PrismaService } from "@/prisma/prisma.service";
 import { ReminderEventsService } from "@/events/reminder-events.service";
 import { NotificationsService } from "@/notifications/notifications.service";
@@ -16,6 +16,24 @@ const reminderInclude = {
   locationTrigger: true,
   habit: true
 };
+
+function isSensitiveAction(actionType: ActionType) {
+  return [
+    ActionType.DRAFT_EMAIL,
+    ActionType.DRAFT_MESSAGE,
+    ActionType.OPEN_PAYMENT_APP,
+    ActionType.PAYMENT_REMINDER,
+    ActionType.CALL_CONTACT,
+    ActionType.CREATE_CALENDAR_EVENT
+  ].includes(actionType);
+}
+
+function actionPromptTitle(actionType: ActionType, title: string) {
+  if (actionType === ActionType.PAYMENT_REMINDER) return `Payment reminder: ${title}`;
+  if (actionType === ActionType.DRAFT_EMAIL) return `Draft email: ${title}`;
+  if (actionType === ActionType.DRAFT_MESSAGE) return `Draft message: ${title}`;
+  return title;
+}
 
 @Injectable()
 export class RemindersService {
@@ -61,8 +79,10 @@ export class RemindersService {
                 create: {
                   userId,
                   actionType: dto.actionType,
+                  title: actionPromptTitle(dto.actionType, dto.title),
                   payload: dto.actionPayload as Prisma.InputJsonValue | undefined,
-                  status: ActionPromptStatus.PENDING_CONFIRMATION
+                  status: ActionPromptStatus.PENDING_CONFIRMATION,
+                  sensitive: isSensitiveAction(dto.actionType)
                 }
               }
             : undefined,
@@ -107,13 +127,17 @@ export class RemindersService {
                 create: {
                   userId,
                   actionType: dto.actionType,
+                  title: actionPromptTitle(dto.actionType, dto.title ?? "Prepared action"),
                   payload: dto.actionPayload as Prisma.InputJsonValue | undefined,
-                  status: ActionPromptStatus.PENDING_CONFIRMATION
+                  status: ActionPromptStatus.PENDING_CONFIRMATION,
+                  sensitive: isSensitiveAction(dto.actionType)
                 },
                 update: {
                   actionType: dto.actionType,
+                  title: dto.title ? actionPromptTitle(dto.actionType, dto.title) : undefined,
                   payload: dto.actionPayload as Prisma.InputJsonValue | undefined,
-                  status: ActionPromptStatus.PENDING_CONFIRMATION
+                  status: ActionPromptStatus.PENDING_CONFIRMATION,
+                  sensitive: isSensitiveAction(dto.actionType)
                 }
               }
             }

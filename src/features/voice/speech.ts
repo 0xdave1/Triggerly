@@ -3,13 +3,27 @@ import type { VoiceSettings } from "./types";
 export async function speakReminder(script: string, voiceSettings: VoiceSettings): Promise<void> {
   if (!voiceSettings.voiceNotificationsEnabled) return;
 
-  // TODO: Use expo-speech when the package is added to the Expo app.
-  // OS support for speaking from background notifications is limited; this
-  // abstraction is for foreground preview and notification-open playback first.
-  console.info("voice_preview_placeholder", {
-    script,
-    voiceStyle: voiceSettings.selectedVoiceStyle,
-    selectedVoiceId: voiceSettings.selectedVoiceId,
-    voiceVolume: voiceSettings.voiceVolume
+  const speech = loadSpeechModule();
+  if (!speech) return;
+  speech.speak(script, {
+    voice: voiceSettings.selectedVoiceId,
+    volume: voiceSettings.voiceVolume,
+    pitch: voiceSettings.selectedVoiceStyle === "energetic" ? 1.08 : 1,
+    rate: voiceSettings.selectedVoiceStyle === "minimal" ? 0.92 : 1
   });
+}
+
+type SpeechModule = {
+  speak: (text: string, options?: Record<string, unknown>) => void;
+};
+
+function loadSpeechModule(): SpeechModule | undefined {
+  try {
+    const runtimeRequire = eval("require") as (name: string) => SpeechModule;
+    return runtimeRequire("expo-speech");
+  } catch {
+    // Platform/background voice support varies. Triggerly falls back silently
+    // when expo-speech is unavailable instead of pretending voice fired.
+    return undefined;
+  }
 }

@@ -1,5 +1,5 @@
 import { StyleSheet, Text, View } from "react-native";
-import { colors, radii, spacing, typography } from "@/styles/theme";
+import { colors, spacing, typography } from "@/styles/theme";
 
 type StatusPillProps = {
   label: string;
@@ -9,7 +9,7 @@ type StatusPillProps = {
 export function StatusPill({ label, tone = "green" }: StatusPillProps) {
   const color = tone === "cyan" ? colors.cyan : tone === "amber" ? colors.warning : colors.primary;
   return (
-    <View style={[styles.pill, { borderColor: color }]}>
+    <View style={styles.pill}>
       <View style={[styles.dot, { backgroundColor: color }]} />
       <Text style={[styles.text, { color }]}>{label}</Text>
     </View>
@@ -19,13 +19,9 @@ export function StatusPill({ label, tone = "green" }: StatusPillProps) {
 const styles = StyleSheet.create({
   pill: {
     alignItems: "center",
-    backgroundColor: colors.surface,
-    borderRadius: radii.sm,
-    borderWidth: 1,
     flexDirection: "row",
     gap: spacing.xs,
-    minHeight: 32,
-    paddingHorizontal: spacing.sm
+    minHeight: 28
   },
   dot: {
     borderRadius: 4,
@@ -33,10 +29,10 @@ const styles = StyleSheet.create({
     width: 7
   },
   text: {
-    fontFamily: typography.mono,
-    fontSize: 11,
-    fontWeight: "900",
-    letterSpacing: 1,
+    fontFamily: typography.code,
+    fontSize: 9,
+    fontWeight: "700",
+    letterSpacing: 1.3,
     textTransform: "uppercase"
   }
 });

@@ -32,22 +32,22 @@ export default function LoginScreen() {
 
   return (
     <TerminalScreen>
-      <TerminalHeader title="triggerly.sh" subtitle="auth gateway · privacy first" status="session: locked" />
-      <TerminalCard title="login.session" active>
+      <TerminalHeader title="Welcome back." subtitle="Your reminders, memory, and approvals stay private." status="secure sign in" />
+      <TerminalCard title="Sign in" active>
         <TerminalInput label="email" value={email} onChangeText={setEmail} autoCapitalize="none" keyboardType="email-address" placeholder="you@example.com" />
         <TerminalInput label="password" value={password} onChangeText={setPassword} secureTextEntry placeholder="minimum 8 chars" />
         {error ? <Text style={styles.error}>{error}</Text> : null}
         <View style={styles.row}>
           <TerminalButton loading={loading} disabled={!email || !password} onPress={submit}>
-            LOGIN
+            Sign in
           </TerminalButton>
           <TerminalButton variant="secondary" onPress={() => router.push("/register")}>
-            REGISTER
+            Create account
           </TerminalButton>
         </View>
       </TerminalCard>
-      <TerminalCard title="privacy_note">
-        <Text style={styles.body}>no background listening · user-defined triggers only · location asks at point of need</Text>
+      <TerminalCard title="Your privacy">
+        <Text style={styles.body}>No background listening. Location is requested only when a reminder needs it.</Text>
       </TerminalCard>
     </TerminalScreen>
   );
@@ -61,13 +61,13 @@ const styles = StyleSheet.create({
   },
   error: {
     color: colors.danger,
-    fontFamily: typography.mono,
+    fontFamily: typography.sans,
     fontSize: typography.small,
     lineHeight: 20
   },
   body: {
     color: colors.textMuted,
-    fontFamily: typography.mono,
+    fontFamily: typography.sans,
     fontSize: typography.small,
     lineHeight: 20
   }

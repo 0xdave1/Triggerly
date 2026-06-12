@@ -1,16 +1,21 @@
 import { useEffect, useState } from "react";
 import { Alert, StyleSheet, Text, View } from "react-native";
+import { router } from "expo-router";
 import { Select } from "@/components/ui/Select";
 import { TerminalButton } from "@/components/ui/TerminalButton";
 import { TerminalCard } from "@/components/ui/TerminalCard";
 import { TerminalHeader } from "@/components/ui/TerminalHeader";
 import { TerminalScreen } from "@/components/ui/TerminalScreen";
 import { TerminalStatRow } from "@/components/ui/TerminalStatRow";
+import { PrivacyToggleRow } from "@/components/ui/PrivacyToggleRow";
 import { PRIVACY_COPY } from "@/constants/copy";
 import { useAuth } from "@/features/auth/AuthProvider";
 import { getLocationPermissionStatus } from "@/features/location/permissions";
 import type { PermissionState } from "@/features/location/types";
 import { getNotificationPermissionStatus, requestNotificationPermission } from "@/features/notifications/permissions";
+import { usePrivacySettings, useUpdatePrivacySettings } from "@/features/privacy/hooks";
+import type { PrivacySettingKey } from "@/features/privacy/types";
+import { PRIVACY_SETTINGS_ROWS } from "@/features/settings/privacyCopy";
 import { useReminderActions } from "@/features/reminders/hooks";
 import type { VoiceStyle } from "@/features/reminders/types";
 import { loadVoiceSettings, saveVoiceSettings } from "@/features/voice/settings";
@@ -24,6 +29,8 @@ export default function SettingsScreen() {
   const [voiceSettings, setVoiceSettings] = useState<VoiceSettings>(defaultVoiceSettings);
   const actions = useReminderActions();
   const { user, logout } = useAuth();
+  const privacySettings = usePrivacySettings();
+  const updatePrivacy = useUpdatePrivacySettings();
 
   const refresh = async () => {
     setNotificationStatus(await getNotificationPermissionStatus());
@@ -74,11 +81,26 @@ export default function SettingsScreen() {
         <TerminalStatRow label="auto_payments" value="disabled" tone="green" />
         <TerminalStatRow label="auto_email_send" value="disabled" tone="green" />
         <TerminalStatRow label="confirmation_required" value="enabled" tone="amber" />
+        {PRIVACY_SETTINGS_ROWS.map(([label, value]) => (
+          <TerminalStatRow key={label} label={label} value={value} tone="muted" />
+        ))}
         <TerminalStatRow label="data_export" value="available later" tone="muted" />
         <TerminalStatRow label="delete_data" value="available" tone="amber" />
         <TerminalButton variant="secondary" onPress={enableNotifications}>
           REQUEST_NOTIFICATIONS
         </TerminalButton>
+      </TerminalCard>
+
+      <TerminalCard title="privacy.control_center" active>
+        {privacyRows.map((row) => (
+          <PrivacyToggleRow
+            key={row.key}
+            label={row.key}
+            value={Boolean(privacySettings.data?.[row.key])}
+            description={row.description}
+            onToggle={() => updatePrivacy.mutate({ [row.key]: !privacySettings.data?.[row.key] })}
+          />
+        ))}
       </TerminalCard>
 
       <TerminalCard title="voice.config" tone="cyan">
@@ -109,6 +131,9 @@ export default function SettingsScreen() {
             onPress={() => speakReminder("You're near Shoprite. You asked me to buy cookies.", { ...voiceSettings, voiceNotificationsEnabled: true })}
           >
             PREVIEW_VOICE
+          </TerminalButton>
+          <TerminalButton variant="ghost" onPress={() => router.push("/voice" as never)}>
+            OPEN_VOICE_CONFIG
           </TerminalButton>
         </View>
       </TerminalCard>
@@ -145,3 +170,28 @@ const styles = StyleSheet.create({
     lineHeight: 23
   }
 });
+
+const privacyRows: Array<{ key: PrivacySettingKey; description: string }> = [
+  { key: "locationTriggersEnabled", description: "Location is used only for reminders you create." },
+  { key: "backgroundLocationEnabled", description: "No hidden tracking; native background behavior needs explicit approval." },
+  { key: "microphoneInputEnabled", description: "Voice input is tap-to-record only." },
+  { key: "voiceNotificationsEnabled", description: "Voice nudges are user-selected." },
+  { key: "aiParsingEnabled", description: "Allow backend AI intent parsing." },
+  { key: "cloudSyncEnabled", description: "Sync user-owned reminders and memory." },
+  { key: "contactAccessEnabled", description: "Contacts are requested only for contact reminders." },
+  { key: "emailDraftingEnabled", description: "Drafting only; no automatic email sending." },
+  { key: "messageDraftingEnabled", description: "Message drafts only; no automatic sending." },
+  { key: "paymentRemindersEnabled", description: "Payment reminders only." },
+  { key: "paymentActionsEnabled", description: "Opening/preparing payment flow requires confirmation." },
+  { key: "calendarIntegrationEnabled", description: "Calendar actions require explicit confirmation." },
+  { key: "screenshotReceiptScanningEnabled", description: "Disabled unless explicitly enabled later." },
+  { key: "smartSuggestionsEnabled", description: "Show optional suggestions from confirmed data." },
+  { key: "habitLearningEnabled", description: "No passive habit learning unless enabled." },
+  { key: "weatherTriggersEnabled", description: "Allow weather trigger creation." },
+  { key: "exchangeRateTriggersEnabled", description: "Allow exchange rate trigger creation." },
+  { key: "priceMemoryEnabled", description: "Allow manual price memory logs." },
+  { key: "travelContextEnabled", description: "Allow travel context prompts." },
+  { key: "analyticsEnabled", description: "No hidden analytics." },
+  { key: "crashReportsEnabled", description: "No reminder content in crash reports." },
+  { key: "dataExportEnabled", description: "Allow privacy export." }
+];

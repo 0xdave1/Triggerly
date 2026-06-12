@@ -1,7 +1,5 @@
 import { StyleSheet, Text, View } from "react-native";
-import { GlowText } from "@/components/ui/GlowText";
 import { TerminalCard } from "@/components/ui/TerminalCard";
-import { TerminalStatRow } from "@/components/ui/TerminalStatRow";
 import type { ReminderWithTriggers } from "@/features/reminders/types";
 import { colors, spacing, typography } from "@/styles/theme";
 
@@ -14,42 +12,67 @@ export function ActiveTriggerPanel({ reminders }: ActiveTriggerPanelProps) {
   const locationCount = active.filter((reminder) => reminder.type === "location").length;
   const timeCount = active.filter((reminder) => reminder.type === "time").length;
   const habitCount = active.filter((reminder) => reminder.type === "habit").length;
-  const nextTime = active.find((reminder) => reminder.timeTrigger)?.timeTrigger?.triggerDateTime;
 
   return (
-    <TerminalCard title="ACTIVE MEMORY QUEUE" active>
-      <View style={styles.center}>
-        <GlowText pulse style={styles.count}>
-          {String(active.length).padStart(2, "0")}
-        </GlowText>
-        <Text style={styles.status}>SECURED / USER-DEFINED / READY</Text>
+    <TerminalCard title="Your overview" active>
+      <View style={styles.summary}>
+        <View style={styles.primaryStat}>
+          <Text style={styles.count}>{active.length}</Text>
+          <Text style={styles.caption}>active reminders</Text>
+        </View>
+        <View style={styles.breakdown}>
+          <Stat value={timeCount} label="time" />
+          <Stat value={locationCount} label="location" />
+          <Stat value={habitCount} label="habits" />
+        </View>
       </View>
-      <TerminalStatRow label="location_triggers" value={`${locationCount} armed`} tone="cyan" />
-      <TerminalStatRow label="time_triggers" value={`${timeCount} scheduled`} tone="green" />
-      <TerminalStatRow label="habit_loops" value={`${habitCount} active`} tone="amber" />
-      <TerminalStatRow label="next_trigger" value={nextTime ? new Date(nextTime).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }) : "none"} tone="cyan" />
-      <TerminalStatRow label="privacy_mode" value="enabled" tone="green" />
-      <TerminalStatRow label="background_audio" value="disabled" tone="muted" />
     </TerminalCard>
   );
 }
 
+function Stat({ value, label }: { value: number; label: string }) {
+  return (
+    <View style={styles.stat}>
+      <Text style={styles.statValue}>{value}</Text>
+      <Text style={styles.caption}>{label}</Text>
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
-  center: {
-    alignItems: "center",
-    gap: spacing.sm,
-    paddingVertical: spacing.md
+  summary: {
+    alignItems: "flex-end",
+    flexDirection: "row",
+    gap: spacing.xl,
+    justifyContent: "space-between"
+  },
+  primaryStat: {
+    gap: spacing.xs
   },
   count: {
-    fontSize: 72,
-    lineHeight: 82
+    color: colors.text,
+    fontFamily: typography.sans,
+    fontSize: 56,
+    fontWeight: "800",
+    lineHeight: 60
   },
-  status: {
+  caption: {
     color: colors.textMuted,
-    fontFamily: typography.mono,
-    fontSize: 12,
-    fontWeight: "900",
-    letterSpacing: 2.2,
-    textAlign: "center"
+    fontFamily: typography.sans,
+    fontSize: typography.small
+  },
+  breakdown: {
+    flexDirection: "row",
+    gap: spacing.xl
+  },
+  stat: {
+    alignItems: "flex-end",
+    gap: spacing.xs
+  },
+  statValue: {
+    color: colors.text,
+    fontFamily: typography.sans,
+    fontSize: 22,
+    fontWeight: "700"
   }
 });

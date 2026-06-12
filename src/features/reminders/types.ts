@@ -4,8 +4,8 @@ export type LocationTriggerType = "arrival" | "departure";
 export type HabitFrequencyType = "daily" | "weekly" | "monthly" | "custom";
 export type ReminderEventType = "created" | "triggered" | "completed" | "snoozed" | "dismissed" | "edited";
 export type DeliveryMode = "push" | "voice" | "voice_and_push" | "silent" | "urgent";
-export type TriggerIntentType = "time" | "location_arrival" | "location_departure" | "habit" | "contact" | "errand_group" | "action_prompt";
-export type ActionPromptType = "draft_email" | "open_payment_app" | "call_contact" | "open_maps" | "open_url";
+export type TriggerIntentType = "time" | "location_arrival" | "location_departure" | "habit" | "weather" | "exchange_rate" | "price" | "contact" | "travel" | "action_confirmation" | "errand_group" | "action_prompt";
+export type ActionPromptType = "draft_email" | "draft_message" | "open_payment_app" | "call_contact" | "open_maps" | "open_url" | "create_calendar_event" | "generate_checklist";
 export type VoiceStyle = "calm" | "energetic" | "professional" | "friendly" | "minimal";
 
 export type User = {

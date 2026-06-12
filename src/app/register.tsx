@@ -38,22 +38,22 @@ export default function RegisterScreen() {
 
   return (
     <TerminalScreen>
-      <TerminalHeader title="register.user" subtitle="create private trigger workspace" status="privacy_mode: on" />
-      <TerminalCard title="new_user.config" active>
+      <TerminalHeader title="Create your private space." subtitle="Triggerly only remembers what you choose to save." status="privacy protected" />
+      <TerminalCard title="Create account" active>
         <TerminalInput label="name_optional" value={name} onChangeText={setName} placeholder="Ada" />
         <TerminalInput label="email" value={email} onChangeText={setEmail} autoCapitalize="none" keyboardType="email-address" placeholder="you@example.com" />
         <TerminalInput label="password" value={password} onChangeText={setPassword} secureTextEntry placeholder="minimum 8 chars" />
         {error ? <Text style={styles.error}>{error}</Text> : null}
         <View style={styles.row}>
           <TerminalButton loading={loading} disabled={!email || !password} onPress={submit}>
-            CREATE_ACCOUNT
+            Create account
           </TerminalButton>
           <TerminalButton variant="secondary" onPress={() => router.push("/login")}>
-            LOGIN
+            Sign in
           </TerminalButton>
         </View>
       </TerminalCard>
-      <TerminalCard title="consent_boundary">
+      <TerminalCard title="Consent comes first">
         <Text style={styles.body}>Triggerly stores reminders you create. No covert recording, hidden tracking, or automatic message reading.</Text>
       </TerminalCard>
     </TerminalScreen>
@@ -68,13 +68,13 @@ const styles = StyleSheet.create({
   },
   error: {
     color: colors.danger,
-    fontFamily: typography.mono,
+    fontFamily: typography.sans,
     fontSize: typography.small,
     lineHeight: 20
   },
   body: {
     color: colors.textMuted,
-    fontFamily: typography.mono,
+    fontFamily: typography.sans,
     fontSize: typography.small,
     lineHeight: 20
   }

@@ -1,43 +1,39 @@
-import { useEffect, useRef } from "react";
-import { Animated, StyleSheet, View } from "react-native";
-import { colors } from "@/styles/theme";
-import { useReducedMotion } from "./animation";
+import { StyleSheet, View } from "react-native";
 
 export function ScanlineOverlay() {
-  const reducedMotion = useReducedMotion();
-  const translateY = useRef(new Animated.Value(0)).current;
-
-  useEffect(() => {
-    if (reducedMotion) return;
-    const animation = Animated.loop(
-      Animated.timing(translateY, {
-        toValue: 18,
-        duration: 1800,
-        useNativeDriver: true
-      })
-    );
-    animation.start();
-    return () => animation.stop();
-  }, [reducedMotion, translateY]);
-
   return (
-    <View pointerEvents="none" style={StyleSheet.absoluteFill}>
-      <Animated.View style={[styles.scanlines, { transform: [{ translateY }] }]} />
-      <View style={styles.noise} />
+    <View pointerEvents="none" style={[StyleSheet.absoluteFill, styles.overlay]}>
+      {dots.map((dot, index) => (
+        <View
+          key={index}
+          style={[
+            styles.dot,
+            {
+              left: `${dot.x}%`,
+              top: `${dot.y}%`,
+              opacity: dot.opacity
+            }
+          ]}
+        />
+      ))}
     </View>
   );
 }
 
+const dots = Array.from({ length: 48 }, (_, index) => ({
+  x: (index * 37 + 9) % 100,
+  y: (index * 61 + 7) % 100,
+  opacity: 0.05 + (index % 4) * 0.025
+}));
+
 const styles = StyleSheet.create({
-  scanlines: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: "transparent",
-    borderTopColor: colors.scanline,
-    borderTopWidth: 1,
-    opacity: 0.7
+  overlay: {
+    overflow: "hidden"
   },
-  noise: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(255,255,255,0.012)"
+  dot: {
+    backgroundColor: "#C1E7D6",
+    height: 2,
+    position: "absolute",
+    width: 2
   }
 });

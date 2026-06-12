@@ -24,25 +24,25 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     gap: spacing.md,
     justifyContent: "space-between",
-    minHeight: 42
+    minHeight: 48
   },
   label: {
     color: colors.textMuted,
     flex: 1,
-    fontFamily: typography.mono,
+    fontFamily: typography.sans,
     fontSize: typography.small
   },
   value: {
     flex: 1,
-    fontFamily: typography.mono,
+    fontFamily: typography.sans,
     fontSize: typography.small,
-    fontWeight: "900",
+    fontWeight: "700",
     textAlign: "right"
   }
 });
 
 const toneStyles = {
-  green: { color: colors.primary },
+  green: { color: colors.text },
   cyan: { color: colors.cyan },
   amber: { color: colors.warning },
   muted: { color: colors.textMuted }

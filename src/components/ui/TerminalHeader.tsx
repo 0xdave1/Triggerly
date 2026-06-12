@@ -1,8 +1,6 @@
-import { useEffect, useRef, useState } from "react";
-import { Animated, StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 import { colors, spacing, typography } from "@/styles/theme";
 import { StatusPill } from "./StatusPill";
-import { useReducedMotion } from "./animation";
 
 type TerminalHeaderProps = {
   title?: string;
@@ -10,76 +8,57 @@ type TerminalHeaderProps = {
   status?: string;
 };
 
-export function TerminalHeader({ title = "triggerly.sh", subtitle = "context reminder engine", status = "privacy_mode: on" }: TerminalHeaderProps) {
-  const [typed, setTyped] = useState("");
-  const reducedMotion = useReducedMotion();
-  const flicker = useRef(new Animated.Value(1)).current;
-
-  useEffect(() => {
-    if (reducedMotion) {
-      setTyped(subtitle);
-      return;
-    }
-
-    let index = 0;
-    const timer = setInterval(() => {
-      index += 1;
-      setTyped(subtitle.slice(0, index));
-      if (index >= subtitle.length) clearInterval(timer);
-    }, 38);
-    return () => clearInterval(timer);
-  }, [reducedMotion, subtitle]);
-
-  useEffect(() => {
-    if (reducedMotion) return;
-    const animation = Animated.loop(
-      Animated.sequence([
-        Animated.timing(flicker, { toValue: 0.76, duration: 70, useNativeDriver: true }),
-        Animated.timing(flicker, { toValue: 1, duration: 1600, useNativeDriver: true })
-      ])
-    );
-    animation.start();
-    return () => animation.stop();
-  }, [flicker, reducedMotion]);
-
+export function TerminalHeader({ title = "Triggerly", subtitle = "Private reminders that arrive when they matter.", status = "privacy enabled" }: TerminalHeaderProps) {
   return (
     <View style={styles.header}>
-      <View style={styles.titleGroup}>
-        <Animated.Text style={[styles.title, { opacity: flicker }]}>{title}</Animated.Text>
-        <Text style={styles.subtitle}>
-          {typed}
-          <Text style={styles.cursor}>_</Text>
-        </Text>
+      <View style={styles.topline}>
+        <Text style={styles.brand}>TRIGGERLY</Text>
+        <StatusPill label={status} />
       </View>
-      <StatusPill label={status} />
+      <View style={styles.titleGroup}>
+        <Text style={styles.title}>{humanize(title)}</Text>
+        <Text style={styles.subtitle}>{humanize(subtitle)}</Text>
+      </View>
     </View>
   );
 }
 
+function humanize(value: string) {
+  return value.replace(/[._]/g, " ").replace(/\s+/g, " ").trim();
+}
+
 const styles = StyleSheet.create({
   header: {
-    alignItems: "flex-start",
+    gap: spacing.xl,
+    paddingBottom: spacing.md
+  },
+  topline: {
+    alignItems: "center",
     flexDirection: "row",
-    gap: spacing.md,
     justifyContent: "space-between"
   },
+  brand: {
+    color: colors.text,
+    fontFamily: typography.sans,
+    fontSize: 12,
+    fontWeight: "800",
+    letterSpacing: 1.5
+  },
   titleGroup: {
-    flex: 1,
-    gap: spacing.xs
+    gap: spacing.sm,
+    maxWidth: 620
   },
   title: {
     color: colors.text,
-    fontFamily: typography.mono,
-    fontSize: 24,
-    fontWeight: "900",
-    letterSpacing: typography.letterSpacing
+    fontFamily: typography.sans,
+    fontSize: typography.title,
+    fontWeight: "800",
+    lineHeight: 43
   },
   subtitle: {
     color: colors.textMuted,
-    fontFamily: typography.mono,
-    fontSize: typography.small
-  },
-  cursor: {
-    color: colors.primary
+    fontFamily: typography.sans,
+    fontSize: typography.body,
+    lineHeight: 24
   }
 });

@@ -1,6 +1,5 @@
 import { StyleSheet, View } from "react-native";
 import { TerminalButton } from "@/components/ui/TerminalButton";
-import { TerminalCard } from "@/components/ui/TerminalCard";
 import { TerminalInput } from "@/components/ui/TerminalInput";
 import { spacing } from "@/styles/theme";
 
@@ -12,24 +11,28 @@ type QuickTriggerInputProps = {
 
 export function QuickTriggerInput({ value, onChangeText, onSubmit }: QuickTriggerInputProps) {
   return (
-    <TerminalCard title="quick_trigger.command">
+    <View style={styles.container}>
       <TerminalInput
         command
-        label="command_input"
+        label="What should Triggerly remember?"
         value={value}
         onChangeText={onChangeText}
-        placeholder="remind me to buy cookies when I get to Shoprite"
+        placeholder="Remind me to buy cookies when I get to Shoprite"
+        multiline
       />
       <View style={styles.row}>
         <TerminalButton disabled={!value.trim()} onPress={onSubmit}>
-          ARM_TRIGGER
+          Continue
         </TerminalButton>
       </View>
-    </TerminalCard>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  container: {
+    gap: spacing.md
+  },
   row: {
     alignItems: "flex-start",
     flexDirection: "row",

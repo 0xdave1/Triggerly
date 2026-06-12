@@ -42,37 +42,32 @@ export function TerminalCard({ children, title, active = false, tone = "green" }
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: colors.surface,
-    borderColor: colors.border,
-    borderRadius: radii.lg,
-    borderWidth: 1,
-    gap: spacing.md,
-    overflow: "hidden",
-    padding: spacing.lg
-  },
-  active: {
-    borderColor: colors.borderStrong,
-    borderLeftColor: colors.primary,
-    borderLeftWidth: 2
-  },
-  header: {
+    backgroundColor: "transparent",
     borderBottomColor: colors.border,
     borderBottomWidth: 1,
-    paddingBottom: spacing.sm
+    gap: spacing.lg,
+    paddingBottom: spacing.xl,
+    paddingTop: spacing.sm
+  },
+  active: {
+    borderBottomColor: colors.borderStrong
+  },
+  header: {
+    paddingBottom: spacing.xs
   },
   title: {
-    color: colors.textMuted,
-    fontFamily: typography.mono,
-    fontSize: 12,
-    fontWeight: "900",
-    letterSpacing: typography.letterSpacing,
+    color: colors.success,
+    fontFamily: typography.code,
+    fontSize: 10,
+    fontWeight: "700",
+    letterSpacing: 1.8,
     textTransform: "uppercase"
   }
 });
 
 const toneStyles = {
-  green: { borderColor: colors.border },
-  cyan: { borderColor: "rgba(24,216,255,0.34)" },
-  amber: { borderColor: "rgba(255,184,46,0.34)" },
-  neutral: { borderColor: colors.border }
+  green: {},
+  cyan: {},
+  amber: {},
+  neutral: {}
 };

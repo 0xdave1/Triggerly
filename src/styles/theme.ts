@@ -1,22 +1,22 @@
 export const colors = {
-  background: "#050505",
-  backgroundAlt: "#080908",
-  surface: "#090A09",
-  surfaceMuted: "#0D0F0D",
-  surfaceRaised: "#101210",
-  text: "#F2F4F0",
-  textMuted: "#6C746C",
-  border: "rgba(255, 255, 255, 0.09)",
-  borderStrong: "rgba(0, 255, 102, 0.62)",
-  primary: "#00FF66",
-  primaryDark: "#14F875",
-  success: "#49FF9A",
-  cyan: "#18D8FF",
-  warning: "#FFB82E",
-  danger: "#FF4D4D",
-  black: "#030303",
-  scanline: "rgba(255, 255, 255, 0.025)",
-  chrome: "#101010"
+  background: "#020403",
+  backgroundAlt: "#050806",
+  surface: "rgba(8, 12, 10, 0.72)",
+  surfaceMuted: "#0A0E0C",
+  surfaceRaised: "#0D1210",
+  text: "#F7F8F5",
+  textMuted: "#8B928E",
+  border: "rgba(255, 255, 255, 0.11)",
+  borderStrong: "rgba(193, 231, 214, 0.72)",
+  primary: "#C1E7D6",
+  primaryDark: "#92C9AF",
+  success: "#35D889",
+  cyan: "#83CAD0",
+  warning: "#E2B86B",
+  danger: "#E36C6C",
+  black: "#020403",
+  scanline: "rgba(193, 231, 214, 0.12)",
+  chrome: "#050806"
 };
 
 export const spacing = {
@@ -29,19 +29,20 @@ export const spacing = {
 };
 
 export const radii = {
-  sm: 4,
-  md: 6,
-  lg: 8
+  sm: 2,
+  md: 4,
+  lg: 6
 };
 
 export const typography = {
-  title: 30,
-  section: 18,
+  title: 38,
+  section: 20,
   body: 16,
-  small: 13,
-  mono:
-    "JetBrains Mono, IBM Plex Mono, Space Mono, SF Mono, Menlo, Consolas, monospace",
-  letterSpacing: 1.6
+  small: 12,
+  sans: "System",
+  mono: "System",
+  code: "SF Mono, Menlo, Consolas, monospace",
+  letterSpacing: 0
 };
 
 export const glows = {

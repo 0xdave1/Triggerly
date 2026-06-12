@@ -12,5 +12,9 @@ export default () => ({
   redisUrl: process.env.REDIS_URL,
   enableSwagger: process.env.ENABLE_SWAGGER === "true",
   aiProvider: process.env.AI_PROVIDER ?? "heuristic",
+  weatherProvider: process.env.WEATHER_PROVIDER ?? "",
+  weatherApiKey: process.env.WEATHER_API_KEY ?? "",
+  exchangeRateProvider: process.env.EXCHANGE_RATE_PROVIDER ?? "",
+  exchangeRateApiKey: process.env.EXCHANGE_RATE_API_KEY ?? "",
   pushProvider: process.env.PUSH_PROVIDER ?? "expo"
 });

@@ -1,8 +1,9 @@
 import { ReminderType } from "@/common/enums";
+import { AiTriggerParserService } from "./ai-trigger-parser.service";
 import { AiService } from "./ai.service";
 
 describe("AiService", () => {
-  const service = new AiService();
+  const service = new AiService(new AiTriggerParserService(), {} as any);
 
   it("detects time reminders", () => {
     expect(service.parseReminderInput("remind me to call David at 6pm")).toMatchObject({

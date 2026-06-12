@@ -42,7 +42,7 @@ export function TerminalButton({ children, onPress, disabled, loading, variant =
 const styles = StyleSheet.create({
   base: {
     alignItems: "center",
-    backgroundColor: colors.black,
+    backgroundColor: "transparent",
     borderRadius: radii.md,
     borderWidth: 1,
     justifyContent: "center",
@@ -55,7 +55,8 @@ const styles = StyleSheet.create({
     borderColor: colors.primary
   },
   secondary: {
-    borderColor: "rgba(109,117,109,0.5)"
+    borderColor: colors.border,
+    backgroundColor: colors.surface
   },
   danger: {
     borderColor: colors.danger
@@ -68,22 +69,22 @@ const styles = StyleSheet.create({
     opacity: 0.42
   },
   text: {
-    fontFamily: typography.mono,
-    fontSize: 13,
-    fontWeight: "900",
-    letterSpacing: 1.4,
+    fontFamily: typography.sans,
+    fontSize: 12,
+    fontWeight: "800",
+    letterSpacing: 0.8,
     textTransform: "uppercase"
   },
   primaryText: {
     color: colors.black
   },
   secondaryText: {
-    color: colors.textMuted
+    color: colors.text
   },
   dangerText: {
     color: colors.danger
   },
   ghostText: {
-    color: colors.cyan
+    color: colors.primary
   }
 });

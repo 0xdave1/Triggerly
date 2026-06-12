@@ -18,6 +18,8 @@ import { VoiceModule } from "./voice/voice.module";
 import { ContactMemoriesModule } from "./contact-memories/contact-memories.module";
 import { ActionPromptsModule } from "./action-prompts/action-prompts.module";
 import { HealthModule } from "./health/health.module";
+import { MemoryModule } from "./memory/memory.module";
+import { LiveContextModule } from "./live-context/live-context.module";
 
 @Module({
   imports: [
@@ -41,6 +43,8 @@ import { HealthModule } from "./health/health.module";
     VoiceModule,
     ContactMemoriesModule,
     ActionPromptsModule,
+    MemoryModule,
+    LiveContextModule,
     HealthModule
   ]
 })

@@ -11,6 +11,6 @@ export class VoiceController {
 
   @Post("generate-script")
   generate(@CurrentUser() user: AuthUser, @Body() dto: GenerateScriptDto) {
-    return this.scripts.generateForReminder(user.id, dto.reminderId, dto.context);
+    return this.scripts.generateVoiceScript(user.id, dto);
   }
 }

@@ -24,16 +24,16 @@ export default function OnboardingScreen() {
 
   return (
     <TerminalScreen>
-      <TerminalHeader title="triggerly.sh" subtitle="memory_trigger_engine" status="privacy_mode: on" />
-      <TerminalCard title="boot_sequence" active>
-        <Text style={styles.title}>PERSONAL REMINDER TERMINAL</Text>
+      <TerminalHeader title="Remember what matters." subtitle="Private reminders for the right time, place, or routine." status="privacy protected" />
+      <TerminalCard title="Built around your consent" active>
+        <Text style={styles.title}>Private from the start. Useful when it matters.</Text>
         <Text style={styles.body}>{PRIVACY_COPY.headline}</Text>
-        <TerminalStatRow label="mode" value="user-defined triggers only" tone="green" />
+        <TerminalStatRow label="Reminders" value="user-defined only" tone="green" />
         <TerminalStatRow label="location" value="used only for reminders you create" tone="cyan" />
-        <TerminalStatRow label="background_audio" value="disabled" tone="green" />
+        <TerminalStatRow label="Background audio" value="always disabled" tone="green" />
       </TerminalCard>
 
-      <TerminalCard title="privacy_boundaries">
+      <TerminalCard title="Clear privacy boundaries">
         <Text style={styles.body}>{PRIVACY_COPY.microphone}</Text>
         <Text style={styles.body}>{PRIVACY_COPY.location}</Text>
         <Text style={styles.body}>{PRIVACY_COPY.boundaries}</Text>
@@ -41,10 +41,10 @@ export default function OnboardingScreen() {
 
       <View style={styles.row}>
         <TerminalButton loading={requesting} onPress={requestNotifications}>
-          ENABLE_NOTIFICATIONS
+          Enable notifications
         </TerminalButton>
         <TerminalButton variant="secondary" onPress={() => router.replace("/")}>
-          CONTINUE
+          Continue
         </TerminalButton>
       </View>
     </TerminalScreen>
@@ -58,16 +58,15 @@ const styles = StyleSheet.create({
     gap: spacing.sm
   },
   title: {
-    color: colors.primary,
-    fontFamily: typography.mono,
-    fontSize: 24,
-    fontWeight: "900",
-    letterSpacing: typography.letterSpacing,
-    lineHeight: 32
+    color: colors.text,
+    fontFamily: typography.sans,
+    fontSize: 30,
+    fontWeight: "800",
+    lineHeight: 36
   },
   body: {
     color: colors.textMuted,
-    fontFamily: typography.mono,
+    fontFamily: typography.sans,
     fontSize: typography.body,
     lineHeight: 24
   }
