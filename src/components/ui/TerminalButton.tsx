@@ -70,10 +70,8 @@ const styles = StyleSheet.create({
   },
   text: {
     fontFamily: typography.sans,
-    fontSize: 12,
-    fontWeight: "800",
-    letterSpacing: 0.8,
-    textTransform: "uppercase"
+    fontSize: 14,
+    fontWeight: "700"
   },
   primaryText: {
     color: colors.black

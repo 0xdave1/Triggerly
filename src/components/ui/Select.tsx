@@ -42,11 +42,10 @@ const styles = StyleSheet.create({
   },
   label: {
     color: colors.textMuted,
-    fontFamily: typography.code,
-    fontSize: 10,
+    fontFamily: typography.sans,
+    fontSize: 12,
     fontWeight: "700",
-    letterSpacing: 1.3,
-    textTransform: "uppercase"
+    lineHeight: 18
   },
   options: {
     flexDirection: "row",
@@ -54,7 +53,7 @@ const styles = StyleSheet.create({
     gap: spacing.sm
   },
   option: {
-    backgroundColor: colors.surface,
+    backgroundColor: colors.surfaceMuted,
     borderColor: colors.border,
     borderRadius: radii.md,
     borderWidth: 1,
@@ -71,7 +70,7 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
     fontFamily: typography.sans,
     fontSize: typography.small,
-    fontWeight: "700"
+    fontWeight: "600"
   },
   activeText: {
     color: colors.black

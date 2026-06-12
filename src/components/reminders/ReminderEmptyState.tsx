@@ -4,7 +4,7 @@ import { colors, typography } from "@/styles/theme";
 
 export function ReminderEmptyState() {
   return (
-    <TerminalCard title="no_active_triggers">
+    <TerminalCard title="No active reminders">
       <Text style={styles.title}>queue_empty</Text>
       <Text style={styles.body}>create a time, place, or habit trigger when ready</Text>
     </TerminalCard>

@@ -15,7 +15,7 @@ type TriggerCardProps = {
 
 export function TriggerCard({ reminder, onDone, onSnooze, onEdit, onDelete }: TriggerCardProps) {
   return (
-    <TerminalCard title={`[${reminder.type}_trigger]`} active={reminder.status === "active"} tone={reminder.type === "location" ? "cyan" : "green"}>
+    <TerminalCard title={`${reminder.type} reminder`} active={reminder.status === "active"} tone={reminder.type === "location" ? "cyan" : "green"}>
       <Text style={styles.title}>{reminder.title}</Text>
       <TerminalStatRow label="status" value={reminder.status} tone={reminder.status === "snoozed" ? "amber" : "green"} />
       <TerminalStatRow label="condition" value={conditionFor(reminder)} tone="cyan" />

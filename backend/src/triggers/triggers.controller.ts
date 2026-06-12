@@ -1,4 +1,4 @@
-import { Body, Controller, Post, UseGuards } from "@nestjs/common";
+import { Body, Controller, Get, Post, UseGuards } from "@nestjs/common";
 import { AuthUser, CurrentUser } from "@/common/decorators/current-user.decorator";
 import { JwtAuthGuard } from "@/common/guards/jwt-auth.guard";
 import { ConfirmTriggerDto } from "./dto/confirm-trigger.dto";
@@ -8,6 +8,11 @@ import { TriggersService } from "./triggers.service";
 @Controller("triggers")
 export class TriggersController {
   constructor(private readonly triggers: TriggersService) {}
+
+  @Get()
+  list(@CurrentUser() user: AuthUser) {
+    return this.triggers.list(user.id);
+  }
 
   @Post("confirm")
   confirm(@CurrentUser() user: AuthUser, @Body() dto: ConfirmTriggerDto) {

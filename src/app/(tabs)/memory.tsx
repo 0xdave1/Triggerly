@@ -1,4 +1,5 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useLocalSearchParams } from "expo-router";
 import { StyleSheet, Text, View } from "react-native";
 import { MemoryCard } from "@/components/reminders/MemoryCard";
 import { Select } from "@/components/ui/Select";
@@ -15,6 +16,7 @@ const memoryTypes: MemoryType[] = ["person", "place", "price", "promise", "debt"
 const filterTypes: Array<MemoryType | "all"> = ["all", "person", "place", "debt", "promise", "price", "routine", "travel"];
 
 export default function MemoryScreen() {
+  const params = useLocalSearchParams<{ type?: MemoryType; title?: string; body?: string }>();
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<MemoryType | "all">("all");
   const [type, setType] = useState<MemoryType>("general");
@@ -23,6 +25,12 @@ export default function MemoryScreen() {
   const [editingId, setEditingId] = useState<string>();
   const memory = useMemoryItems({ status: "active" });
   const actions = useMemoryActions();
+
+  useEffect(() => {
+    if (params.type && memoryTypes.includes(params.type)) setType(params.type);
+    if (params.title) setTitle(params.title);
+    if (params.body) setBody(params.body);
+  }, [params.body, params.title, params.type]);
 
   const filtered = useMemo(() => {
     const needle = query.toLowerCase();
@@ -58,25 +66,25 @@ export default function MemoryScreen() {
 
   return (
     <TerminalScreen>
-      <TerminalHeader title="memory.vault" subtitle="user-approved memory only" status="context_lock: on" />
-      <TerminalCard title="memory.create" active>
+      <TerminalHeader title="Memory" subtitle="Facts and commitments you explicitly asked Triggerly to keep." status="user approved" />
+      <TerminalCard title="Add a memory" active>
         <Text style={styles.help}>Triggerly only saves memory after you confirm it or enter it here.</Text>
-        <Select label="memory_type" value={type} onChange={setType} options={memoryTypes.map((value) => ({ label: value, value }))} />
-        <TerminalInput label="title" value={title} onChangeText={setTitle} placeholder="David owes me 8k" />
-        <TerminalInput label="body" value={body} onChangeText={setBody} placeholder="Confirmed by user" multiline />
+        <Select label="Memory type" value={type} onChange={setType} options={memoryTypes.map((value) => ({ label: value, value }))} />
+        <TerminalInput label="Title" value={title} onChangeText={setTitle} placeholder="David owes me 8k" />
+        <TerminalInput label="Details" value={body} onChangeText={setBody} placeholder="Anything useful to remember" multiline />
         <View style={styles.actions}>
           <TerminalButton disabled={!title.trim() || !body.trim()} loading={actions.create.isPending || actions.update.isPending} onPress={saveMemory}>
-            {editingId ? "UPDATE_MEMORY" : "SAVE_MEMORY"}
+            {editingId ? "Update memory" : "Save memory"}
           </TerminalButton>
           {editingId ? (
             <TerminalButton variant="secondary" onPress={resetForm}>
-              CANCEL_EDIT
+              Cancel edit
             </TerminalButton>
           ) : null}
         </View>
       </TerminalCard>
 
-      <TerminalInput label="search_memory" value={query} onChangeText={setQuery} command placeholder="Search user-approved memory..." />
+      <TerminalInput label="Search" value={query} onChangeText={setQuery} placeholder="Search your saved memory..." />
 
       <View style={styles.filters}>
         {filterTypes.map((value) => (
@@ -86,25 +94,25 @@ export default function MemoryScreen() {
         ))}
       </View>
 
-      <TerminalCard title={filter === "all" ? "memory_index" : `${filter}_memory`}>
-        {memory.isPending ? <Text style={styles.empty}>loading_memory...</Text> : null}
+      <TerminalCard title={filter === "all" ? "Your memory" : `${filter} memories`}>
+        {memory.isPending ? <Text style={styles.empty}>Loading memory...</Text> : null}
         {filtered.map((item) => (
           <View key={item.id} style={styles.item}>
             <MemoryCard item={item} />
             <View style={styles.actions}>
               <TerminalButton variant="secondary" onPress={() => editMemory(item)}>
-                EDIT
+                Edit
               </TerminalButton>
               <TerminalButton variant="ghost" loading={actions.archive.isPending} onPress={() => actions.archive.mutate(item.id)}>
-                ARCHIVE
+                Archive
               </TerminalButton>
               <TerminalButton variant="danger" loading={actions.delete.isPending} onPress={() => actions.delete.mutate(item.id)}>
-                DELETE
+                Delete
               </TerminalButton>
             </View>
           </View>
         ))}
-        {!filtered.length && !memory.isPending ? <Text style={styles.empty}>no_memory_found</Text> : null}
+        {!filtered.length && !memory.isPending ? <Text style={styles.empty}>No memories found.</Text> : null}
       </TerminalCard>
     </TerminalScreen>
   );

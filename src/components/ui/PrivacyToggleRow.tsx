@@ -39,15 +39,15 @@ const styles = StyleSheet.create({
   },
   label: {
     color: colors.text,
-    fontFamily: typography.mono,
-    fontSize: typography.small,
-    fontWeight: "800"
+    fontFamily: typography.sans,
+    fontSize: 14,
+    fontWeight: "700"
   },
   description: {
     color: colors.textMuted,
-    fontFamily: typography.mono,
-    fontSize: 11,
-    lineHeight: 16
+    fontFamily: typography.sans,
+    fontSize: 12,
+    lineHeight: 18
   },
   switch: {
     backgroundColor: colors.black,

@@ -32,7 +32,7 @@ export default function NewReminderScreen() {
 
   return (
     <TerminalScreen>
-      <TerminalHeader title="new_trigger.config" subtitle="user confirmation required" status="system: armed" />
+      <TerminalHeader title={params.id ? "Edit reminder" : "Create manually"} subtitle="Review each detail before saving." status="confirmation required" />
       <ReminderForm
         initialReminder={existingReminder.data}
         initialQuickInput={typeof params.quick === "string" ? params.quick : ""}

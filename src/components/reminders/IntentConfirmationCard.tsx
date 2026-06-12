@@ -7,10 +7,10 @@ import { colors, typography } from "@/styles/theme";
 
 export function IntentConfirmationCard({ intent, source }: { intent?: ParsedIntent; source?: string }) {
   return (
-    <TerminalCard title="intent_parsed" active={Boolean(intent)}>
+    <TerminalCard title="What Triggerly understood" active={Boolean(intent)}>
       <TerminalStatRow label="source" value={source ?? "pending"} tone={source === "local_fallback" ? "amber" : "cyan"} />
       <TerminalStatRow label="intent_type" value={intent?.intentType ?? "unknown"} tone="green" />
-      <TerminalStatRow label="trigger_type" value={intent?.triggerType ?? "none"} tone="cyan" />
+      <TerminalStatRow label="Trigger type" value={intent?.triggerType?.replace(/_/g, " ") ?? "none"} tone="cyan" />
       <TerminalStatRow label="confidence" value={intent ? `${Math.round(intent.confidence * 100)}%` : "0%"} tone="amber" />
       <Text style={styles.body}>task: {intent?.taskTitle ?? "none"}</Text>
       <Text style={styles.body}>time: {describeCandidate(intent?.timeCandidate)}</Text>

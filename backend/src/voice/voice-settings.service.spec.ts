@@ -9,12 +9,12 @@ describe("VoiceSettingsService", () => {
     };
     const service = new VoiceSettingsService(prisma as any);
 
-    await service.update("u1", { selectedVoiceStyle: "friendly" });
+    await service.update("u1", { selectedVoiceStyle: "friendly", readLiveContext: false });
 
     expect(prisma.userVoiceSetting.upsert).toHaveBeenCalledWith({
       where: { userId: "u1" },
-      create: { userId: "u1", selectedVoiceStyle: "friendly" },
-      update: { selectedVoiceStyle: "friendly" }
+      create: { userId: "u1", selectedVoiceStyle: "friendly", readLiveContext: false },
+      update: { selectedVoiceStyle: "friendly", readLiveContext: false }
     });
   });
 });

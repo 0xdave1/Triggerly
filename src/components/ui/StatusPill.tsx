@@ -29,10 +29,8 @@ const styles = StyleSheet.create({
     width: 7
   },
   text: {
-    fontFamily: typography.code,
-    fontSize: 9,
-    fontWeight: "700",
-    letterSpacing: 1.3,
-    textTransform: "uppercase"
+    fontFamily: typography.sans,
+    fontSize: 11,
+    fontWeight: "600"
   }
 });

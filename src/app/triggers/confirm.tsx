@@ -26,22 +26,22 @@ import { colors, spacing, typography } from "@/styles/theme";
 
 const triggerOptions: Array<{ label: string; value: TriggerIntentType }> = [
   { label: "time", value: "time" },
-  { label: "location_arrival", value: "location_arrival" },
-  { label: "location_departure", value: "location_departure" },
+  { label: "arrive at a place", value: "location_arrival" },
+  { label: "leave a place", value: "location_departure" },
   { label: "habit", value: "habit" },
   { label: "weather", value: "weather" },
-  { label: "exchange_rate", value: "exchange_rate" },
+  { label: "exchange rate", value: "exchange_rate" },
   { label: "price", value: "price" },
   { label: "travel", value: "travel" },
-  { label: "action_confirmation", value: "action_confirmation" },
+  { label: "action requiring approval", value: "action_confirmation" },
   { label: "contact", value: "contact" },
-  { label: "action_prompt", value: "action_prompt" }
+  { label: "prepared action", value: "action_prompt" }
 ];
 
 const deliveryOptions: Array<{ label: string; value: DeliveryMode }> = [
   { label: "push", value: "push" },
   { label: "voice", value: "voice" },
-  { label: "voice_and_push", value: "voice_and_push" },
+  { label: "voice and push", value: "voice_and_push" },
   { label: "silent", value: "silent" },
   { label: "urgent", value: "urgent" }
 ];
@@ -122,29 +122,29 @@ export default function TriggerConfirmationScreen() {
 
   return (
     <TerminalScreen>
-      <TerminalHeader title="ai_trigger_engine" subtitle="intent_parsed · confirmation_required" status="action_locked" />
+      <TerminalHeader title="Review Triggerly's suggestion" subtitle="Correct any detail before anything is created." status="confirmation required" />
       <IntentConfirmationCard intent={parsed} source={source} />
-      {parseIntent.isPending ? <Text style={styles.help}>parsing_intent...</Text> : null}
+      {parseIntent.isPending ? <Text style={styles.help}>Understanding your request...</Text> : null}
       {gateMessage ? <Text style={styles.warning}>{gateMessage}</Text> : null}
 
       {parsed?.memoryCandidate || parsed?.intentType === "price_log" || parsed?.intentType === "debt_memory" || parsed?.intentType === "promise_memory" ? (
-        <TerminalCard title="memory_confirmation" tone="cyan">
+        <TerminalCard title="Memory suggestion" tone="cyan">
           <Text style={styles.help}>Triggerly found something worth remembering. It will only be saved if you confirm.</Text>
-          <TerminalStatRow label="save_mode" value="user_approved_only" tone="green" />
+          <TerminalStatRow label="Saving" value="only after your approval" tone="green" />
         </TerminalCard>
       ) : null}
 
-      <TerminalCard title="editable_confirmation" active>
-        <TerminalInput label="task_title" value={taskTitle} onChangeText={setTaskTitle} />
-        <Select label="trigger_type" value={triggerType} options={triggerOptions} onChange={setTriggerType} />
-        <Select label="delivery_mode" value={deliveryMode} options={deliveryOptions} onChange={setDeliveryMode} />
-        <TerminalInput label="voice_script" value={voiceScript} onChangeText={setVoiceScript} multiline />
+      <TerminalCard title="Editable details" active>
+        <TerminalInput label="Title" value={taskTitle} onChangeText={setTaskTitle} />
+        <Select label="Trigger type" value={triggerType} options={triggerOptions} onChange={setTriggerType} />
+        <Select label="Delivery" value={deliveryMode} options={deliveryOptions} onChange={setDeliveryMode} />
+        <TerminalInput label="Voice message" value={voiceScript} onChangeText={setVoiceScript} multiline />
       </TerminalCard>
 
       {parsed?.actionCandidate ? (
-        <TerminalCard title="action_prompt" tone="amber">
-          <TerminalStatRow label="action_type" value={parsed.actionCandidate.actionType.toLowerCase()} tone="amber" />
-          <TerminalStatRow label="auto_execute" value="disabled" tone="green" />
+        <TerminalCard title="Prepared action" tone="amber">
+          <TerminalStatRow label="Action type" value={parsed.actionCandidate.actionType.toLowerCase().replace(/_/g, " ")} tone="amber" />
+          <TerminalStatRow label="Automatic execution" value="disabled" tone="green" />
           <Text style={styles.help}>No payment, email, or message is sent automatically.</Text>
         </TerminalCard>
       ) : null}
@@ -152,16 +152,16 @@ export default function TriggerConfirmationScreen() {
       {error ? <Text style={styles.error}>{error}</Text> : null}
       <View style={styles.row}>
         <TerminalButton loading={createReminder.isPending || memoryActions.confirmFromIntent.isPending || actionPrompts.create.isPending} disabled={!canConfirmIntent(parsed)} onPress={confirm}>
-          CONFIRM
+          Confirm
         </TerminalButton>
         <TerminalButton variant="secondary" onPress={() => router.back()}>
-          EDIT
+          Edit
         </TerminalButton>
         <TerminalButton variant="ghost" onPress={() => Alert.alert("clarification", parsed?.clarificationQuestion ?? "What should Triggerly do with this?")}>
-          ASK_CLARIFICATION
+          Ask for clarification
         </TerminalButton>
         <TerminalButton variant="danger" onPress={() => router.replace("/")}>
-          DISCARD
+          Discard
         </TerminalButton>
       </View>
     </TerminalScreen>

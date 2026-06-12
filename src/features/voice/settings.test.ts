@@ -6,7 +6,8 @@ describe("voice settings defaults", () => {
     expect(defaultVoiceSettings).toMatchObject({
       voiceNotificationsEnabled: false,
       selectedVoiceStyle: "calm",
-      readLocationContext: true
+      readLocationContext: true,
+      readLiveContext: true
     });
   });
 });

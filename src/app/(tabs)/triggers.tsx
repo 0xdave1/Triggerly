@@ -12,15 +12,15 @@ import type { ReminderWithTriggers } from "@/features/reminders/types";
 import { colors, spacing, typography } from "@/styles/theme";
 
 const groups = [
-  "time_triggers",
-  "location_triggers",
-  "habit_loops",
-  "weather_triggers",
-  "exchange_rate_triggers",
-  "price_triggers",
-  "travel_triggers",
-  "action_prompts"
-];
+  ["time_triggers", "Time reminders"],
+  ["location_triggers", "Location reminders"],
+  ["habit_loops", "Habits"],
+  ["weather_triggers", "Weather alerts"],
+  ["exchange_rate_triggers", "Exchange-rate alerts"],
+  ["price_triggers", "Price alerts"],
+  ["travel_triggers", "Travel alerts"],
+  ["action_prompts", "Prepared actions"]
+] as const;
 
 export default function TriggerDashboardScreen() {
   const remindersQuery = useReminders();
@@ -30,15 +30,15 @@ export default function TriggerDashboardScreen() {
 
   return (
     <TerminalScreen>
-      <TerminalHeader title="trigger_queue.dashboard" subtitle="active triggers grouped by condition" status="system: armed" />
-      <TerminalCard title="queue.stats" active>
-        <TerminalStatRow label="active_triggers" value={String(reminders.filter((item) => item.status === "active").length)} />
-        <TerminalStatRow label="snoozed" value={String(reminders.filter((item) => item.status === "snoozed").length)} tone="amber" />
-        <TerminalStatRow label="voice_enabled" value={String(reminders.filter((item) => item.voiceEnabled).length)} tone="cyan" />
+      <TerminalHeader title="Triggers" subtitle="Everything Triggerly is waiting to remind you about." status="active" />
+      <TerminalCard title="Overview" active>
+        <TerminalStatRow label="Active" value={String(reminders.filter((item) => item.status === "active").length)} />
+        <TerminalStatRow label="Snoozed" value={String(reminders.filter((item) => item.status === "snoozed").length)} tone="amber" />
+        <TerminalStatRow label="Voice enabled" value={String(reminders.filter((item) => item.voiceEnabled).length)} tone="cyan" />
       </TerminalCard>
 
-      {groups.map((group) => (
-        <TerminalCard key={group} title={group} tone={group.includes("weather") || group.includes("exchange") ? "cyan" : "green"}>
+      {groups.map(([group, title]) => (
+        <TerminalCard key={group} title={title} tone={group.includes("weather") || group.includes("exchange") ? "cyan" : "green"}>
           {(grouped[group] ?? []).map((reminder) => (
             <TriggerCard
               key={reminder.id}
@@ -49,13 +49,12 @@ export default function TriggerDashboardScreen() {
               onDelete={() => actions.delete.mutate(reminder.id)}
             />
           ))}
-          {!grouped[group]?.length ? <Text style={styles.empty}>no_items</Text> : null}
+          {!grouped[group]?.length ? <Text style={styles.empty}>Nothing here yet.</Text> : null}
         </TerminalCard>
       ))}
 
       <View style={styles.row}>
-        <TerminalButton onPress={() => router.push("/reminders/new")}>NEW_TRIGGER</TerminalButton>
-        <TerminalButton variant="secondary" onPress={() => router.back()}>BACK</TerminalButton>
+        <TerminalButton onPress={() => router.push("/reminders/new")}>Create manually</TerminalButton>
       </View>
     </TerminalScreen>
   );

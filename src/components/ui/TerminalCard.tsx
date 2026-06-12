@@ -56,12 +56,11 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.xs
   },
   title: {
-    color: colors.success,
-    fontFamily: typography.code,
-    fontSize: 10,
+    color: colors.text,
+    fontFamily: typography.sans,
+    fontSize: 14,
     fontWeight: "700",
-    letterSpacing: 1.8,
-    textTransform: "uppercase"
+    lineHeight: 20
   }
 });
 

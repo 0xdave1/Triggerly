@@ -178,7 +178,7 @@ Mobile assistant surfaces:
 - `/live-context` Weather, exchange-rate, and manual price memory surface. Provider placeholders show "Live provider not configured yet."
 - `/memory` User-approved memory vault.
 - `/actions` AI PA pending action prompt surface. Payments/messages/email remain confirmation-only.
-- `/voice` Voice behavior and foreground preview. Expo Speech is used when available; background voice from notifications is OS-limited.
+- `/voice` Voice settings, device voice selection, privacy-safe reading controls, and foreground preview using Expo Speech.
 - `/briefing` Local daily briefing from reminders, memory, habits, and pending review state.
 - `/settings` Privacy Control Center with backend-backed capability toggles.
 
@@ -222,7 +222,10 @@ Backend AI brain endpoints:
 - `POST /action-prompts`
 - `POST /action-prompts/:id/confirm`
 - `POST /action-prompts/:id/cancel`
+- `GET /voice/settings`
+- `PATCH /voice/settings`
 - `POST /voice/generate-script`
+- `POST /voice/preview-script`
 
 Optional provider env vars:
 
@@ -241,6 +244,14 @@ Live context notes:
 - `LiveContextTrigger`, `PriceLog`, `WeatherProviderCache`, and `ExchangeRateCache` are persisted with Prisma.
 - Periodic live-context checking is prepared through `CheckLiveContextTriggersJob`, but scheduling remains pending unless Redis/BullMQ is configured.
 - Privacy settings block weather triggers, exchange-rate triggers, travel context, and price memory where applicable.
+
+Voice engine notes:
+
+- Voice notifications are off by default and can be disabled independently.
+- Triggerly speaks only after the user opens a notification; the push notification still works when speech is disabled or unavailable.
+- `readFullReminder`, `readLocationContext`, and `readLiveContext` prevent sensitive details from being spoken aloud.
+- Voice style adjusts script tone and Expo Speech pitch/rate. Available voices depend on the operating system.
+- iOS and Android do not guarantee arbitrary text-to-speech while the app is backgrounded, so Triggerly does not promise background voice playback.
 
 Memory engine notes:
 

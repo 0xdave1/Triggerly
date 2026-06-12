@@ -139,41 +139,41 @@ export function ReminderForm({ initialReminder, initialQuickInput = "", onSubmit
 
   return (
     <View style={styles.stack}>
-      <TerminalCard title="parse_reminder.local" tone="cyan">
+      <TerminalCard title="Understand a sentence" tone="cyan">
         <TerminalInput command label="command_input" value={quickInput} onChangeText={setQuickInput} placeholder="remind me to call Ada tomorrow" />
         {parsedQuickInput ? (
           <View style={styles.parseBox}>
             <TerminalStatRow label="suggested_type" value={parsedQuickInput.triggerType} tone="cyan" />
             <TerminalStatRow label="confidence" value={`${Math.round(parsedQuickInput.confidence * 100)}%`} tone="green" />
             <TerminalButton variant="secondary" onPress={applyQuickInput}>
-              USE_SUGGESTION
+              Use suggestion
             </TerminalButton>
           </View>
         ) : null}
       </TerminalCard>
 
-      <TerminalCard title="new_trigger.config" active>
+      <TerminalCard title="Reminder details" active>
         <TerminalInput label="task_name" value={title} onChangeText={setTitle} placeholder="pick up laundry" />
         <TerminalInput label="notes" value={notes} onChangeText={setNotes} placeholder="optional context" multiline />
         <TriggerTypeSelector value={type} onChange={setType} />
       </TerminalCard>
 
       {type === "time" ? (
-        <TerminalCard title="time_trigger.config">
-          <TerminalInput label="trigger_time_wat" value={triggerDateTime} onChangeText={setTriggerDateTime} placeholder="2026-05-27 18:00" />
+        <TerminalCard title="Time">
+          <TerminalInput label="Date and time in Nigeria" value={triggerDateTime} onChangeText={setTriggerDateTime} placeholder="2026-05-27 18:00" />
           <Text style={styles.help}>nigeria_time_wat · examples: 2026-05-27 18:00, tomorrow 6pm, 6pm</Text>
         </TerminalCard>
       ) : null}
 
       {type === "location" ? (
-        <TerminalCard title="location_trigger.config" tone="cyan">
+        <TerminalCard title="Location" tone="cyan">
           <TerminalInput label="place_name" value={placeName} onChangeText={setPlaceName} placeholder="home, office, Shoprite" />
           <View style={styles.row}>
             <TerminalButton variant="secondary" onPress={() => router.push("/reminders/location")}>
-              OPEN_LOCATION_PICKER
+              Choose location
             </TerminalButton>
             <TerminalButton variant="ghost" onPress={fillCurrentLocation}>
-              USE_CURRENT_SIGNAL
+              Use current location
             </TerminalButton>
           </View>
           <TerminalInput label="latitude" value={latitude} onChangeText={setLatitude} keyboardType="numeric" />
@@ -185,7 +185,7 @@ export function ReminderForm({ initialReminder, initialQuickInput = "", onSubmit
             options={APP_CONFIG.locationRadiusOptions.map((radius) => ({ label: radius === 1000 ? "1km" : `${radius}m`, value: radius }))}
           />
           <Select
-            label="trigger_condition"
+            label="When to remind me"
             value={locationTriggerType}
             onChange={setLocationTriggerType}
             options={[
@@ -197,7 +197,7 @@ export function ReminderForm({ initialReminder, initialQuickInput = "", onSubmit
       ) : null}
 
       {type === "habit" ? (
-        <TerminalCard title="habit_loop.config" tone="amber">
+        <TerminalCard title="Habit schedule" tone="amber">
           <Select
             label="habit_frequency"
             value={frequencyType}
@@ -216,7 +216,7 @@ export function ReminderForm({ initialReminder, initialQuickInput = "", onSubmit
       {error ? <Text style={styles.error}>{error}</Text> : null}
       <View style={styles.row}>
         <TerminalButton loading={loading} onPress={submit}>
-          ARM_TRIGGER
+          Save reminder
         </TerminalButton>
         <TerminalButton variant="secondary" onPress={() => router.back()}>
           DISCARD

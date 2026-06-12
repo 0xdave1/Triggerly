@@ -17,6 +17,9 @@ type BackendReminder = {
   status: string;
   createdAt: string;
   updatedAt: string;
+  deliveryMode?: string | null;
+  voiceScript?: string | null;
+  voiceEnabled?: boolean;
   timeTrigger?: {
     id: string;
     reminderId: string;
@@ -86,6 +89,9 @@ export function mapReminderFromBackend(reminder: BackendReminder): ReminderWithT
     status: statusFromBackend[reminder.status] ?? "active",
     createdAt: reminder.createdAt,
     updatedAt: reminder.updatedAt,
+    deliveryMode: reminder.deliveryMode?.toLowerCase() as ReminderWithTriggers["deliveryMode"],
+    voiceScript: reminder.voiceScript ?? undefined,
+    voiceEnabled: reminder.voiceEnabled ?? false,
     timeTrigger: reminder.timeTrigger
       ? {
           id: reminder.timeTrigger.id,
@@ -138,7 +144,10 @@ export function mapReminderInputToBackend(input: Partial<ReminderCreateInput>) {
           ...input.habit,
           frequencyType: input.habit.frequencyType.toUpperCase()
         }
-      : undefined
+      : undefined,
+    deliveryMode: input.deliveryMode?.toUpperCase(),
+    voiceScript: input.voiceScript,
+    voiceEnabled: input.voiceEnabled
   };
 }
 

@@ -91,7 +91,10 @@ Use raw env values in the Render dashboard. Do not wrap `DATABASE_URL` or other 
 - `POST /ai/parse-trigger`
 - `GET /voice-settings`
 - `PATCH /voice-settings`
+- `GET /voice/settings`
+- `PATCH /voice/settings`
 - `POST /voice/generate-script`
+- `POST /voice/preview-script`
 - `GET /contact-memories`
 - `POST /contact-memories`
 - `GET /contact-memories/:id`
@@ -127,10 +130,12 @@ Users can configure voice preferences through:
 
 - `GET /voice-settings`
 - `PATCH /voice-settings`
+- `GET /voice/settings`
+- `PATCH /voice/settings`
 
-Voice scripts can be generated with `POST /voice/generate-script`. Scripts support location arrival, location departure, time reminders, habit nudges, errand groups, payment reminders, email draft reminders, and contact reminders.
+Voice scripts can be generated with `POST /voice/generate-script`, and preview samples with `POST /voice/preview-script`. Scripts support location arrival/departure, time reminders, habit nudges, weather, exchange-rate alerts, daily briefings, errand groups, and confirmation-first action prompts.
 
-The backend does not store raw audio and does not implement background listening.
+The backend stores text settings/scripts only. It does not store raw audio or implement background listening. Mobile text-to-speech occurs after the user opens a notification when voice is enabled; background speech is not guaranteed by mobile operating systems.
 
 ## MVP Limitations
 

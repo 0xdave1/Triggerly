@@ -27,18 +27,16 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.xs
   },
   text: {
-    fontFamily: typography.mono,
+    fontFamily: typography.sans,
     fontSize: 11,
-    fontWeight: "900",
-    letterSpacing: 1.2,
-    textTransform: "uppercase"
+    fontWeight: "700"
   }
 });
 
 const toneStyles = {
-  green: { box: { borderColor: colors.primary, backgroundColor: "rgba(0,255,102,0.06)" }, text: { color: colors.primary } },
-  cyan: { box: { borderColor: colors.cyan, backgroundColor: "rgba(24,216,255,0.06)" }, text: { color: colors.cyan } },
-  amber: { box: { borderColor: colors.warning, backgroundColor: "rgba(255,184,46,0.06)" }, text: { color: colors.warning } },
-  grey: { box: { borderColor: colors.textMuted, backgroundColor: "rgba(109,117,109,0.08)" }, text: { color: colors.textMuted } },
-  red: { box: { borderColor: colors.danger, backgroundColor: "rgba(255,77,77,0.06)" }, text: { color: colors.danger } }
+  green: { box: { borderColor: colors.primary, backgroundColor: colors.surfaceRaised }, text: { color: colors.primary } },
+  cyan: { box: { borderColor: colors.cyan, backgroundColor: colors.surfaceRaised }, text: { color: colors.cyan } },
+  amber: { box: { borderColor: colors.warning, backgroundColor: colors.surfaceRaised }, text: { color: colors.warning } },
+  grey: { box: { borderColor: colors.textMuted, backgroundColor: colors.surfaceMuted }, text: { color: colors.textMuted } },
+  red: { box: { borderColor: colors.danger, backgroundColor: colors.surfaceRaised }, text: { color: colors.danger } }
 };

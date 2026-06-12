@@ -23,20 +23,20 @@ export function ActionPromptCard({
   const payment = prompt.actionType === "open_payment_app" || prompt.actionType === "payment_reminder";
   const emailOrMessage = prompt.actionType === "draft_email" || prompt.actionType === "draft_message";
   return (
-    <TerminalCard title={`action.${prompt.actionType}`} tone={payment ? "amber" : "cyan"}>
-      <Text style={styles.title}>{prompt.title ?? "user_approval_required"}</Text>
-      <TerminalStatRow label="status" value={prompt.status} tone={prompt.status === "pending_confirmation" ? "amber" : "green"} />
-      <TerminalStatRow label="sensitive" value={prompt.sensitive ? "yes" : "no"} tone={prompt.sensitive ? "amber" : "muted"} />
-      <TerminalStatRow label="auto_execute" value="disabled" tone="green" />
+    <TerminalCard title={prompt.actionType.replace(/_/g, " ")} tone={payment ? "amber" : "cyan"}>
+      <Text style={styles.title}>{prompt.title ?? "Your approval is required"}</Text>
+      <TerminalStatRow label="Status" value={prompt.status.replace(/_/g, " ")} tone={prompt.status === "pending_confirmation" ? "amber" : "green"} />
+      <TerminalStatRow label="Sensitive" value={prompt.sensitive ? "yes" : "no"} tone={prompt.sensitive ? "amber" : "muted"} />
+      <TerminalStatRow label="Automatic execution" value="disabled" tone="green" />
       {prompt.generatedContent ? <Text style={styles.generated}>{prompt.generatedContent}</Text> : null}
       {payment ? <Text style={styles.warning}>Payment actions are reminders or app-open prompts only. Triggerly never moves money automatically.</Text> : null}
       {emailOrMessage ? <Text style={styles.warning}>Draft only. Triggerly does not send email or messages automatically.</Text> : null}
       <View style={styles.row}>
-        <TerminalButton variant="secondary" onPress={onGenerate}>GENERATE_CONTENT</TerminalButton>
-        <TerminalButton variant="ghost" onPress={onEdit}>EDIT</TerminalButton>
-        <TerminalButton disabled={prompt.status !== "pending_confirmation"} onPress={onConfirm}>CONFIRM_ACTION</TerminalButton>
-        <TerminalButton disabled={prompt.status === "completed" || prompt.status === "cancelled"} variant="secondary" onPress={onComplete}>COMPLETE</TerminalButton>
-        <TerminalButton variant="danger" onPress={onCancel}>CANCEL</TerminalButton>
+        <TerminalButton variant="secondary" onPress={onGenerate}>Generate content</TerminalButton>
+        <TerminalButton variant="ghost" onPress={onEdit}>Edit</TerminalButton>
+        <TerminalButton disabled={prompt.status !== "pending_confirmation"} onPress={onConfirm}>Confirm action</TerminalButton>
+        <TerminalButton disabled={prompt.status === "completed" || prompt.status === "cancelled"} variant="secondary" onPress={onComplete}>Complete</TerminalButton>
+        <TerminalButton variant="danger" onPress={onCancel}>Cancel</TerminalButton>
       </View>
     </TerminalCard>
   );

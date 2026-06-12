@@ -11,14 +11,14 @@ type HabitLoopCardProps = {
 
 export function HabitLoopCard({ reminder, onDone }: HabitLoopCardProps) {
   return (
-    <TerminalCard title="habit_loop">
-      <TerminalStatRow label="habit_name" value={reminder.title} tone="green" />
-      <TerminalStatRow label="frequency" value={`${reminder.habit?.frequencyCount ?? 1}x ${reminder.habit?.frequencyType ?? "daily"}`} tone="cyan" />
-      <TerminalStatRow label="last_done" value={formatDateTime(reminder.habit?.lastCompletedAt)} tone="muted" />
-      <TerminalStatRow label="next_nudge" value={formatDateTime(reminder.habit?.nextDueAt)} tone="amber" />
-      <TerminalStatRow label="status" value={reminder.status === "active" ? "armed" : reminder.status} tone="green" />
+    <TerminalCard title="Habit">
+      <TerminalStatRow label="Habit" value={reminder.title} tone="green" />
+      <TerminalStatRow label="Frequency" value={`${reminder.habit?.frequencyCount ?? 1}x ${reminder.habit?.frequencyType ?? "daily"}`} tone="cyan" />
+      <TerminalStatRow label="Last completed" value={formatDateTime(reminder.habit?.lastCompletedAt)} tone="muted" />
+      <TerminalStatRow label="Next reminder" value={formatDateTime(reminder.habit?.nextDueAt)} tone="amber" />
+      <TerminalStatRow label="Status" value={reminder.status} tone="green" />
       <TerminalButton variant="secondary" onPress={onDone}>
-        MARK_DONE
+        Mark done
       </TerminalButton>
     </TerminalCard>
   );

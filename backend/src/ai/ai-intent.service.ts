@@ -31,6 +31,10 @@ export class AiIntentService {
     return parsed;
   }
 
+  parseUserMessage(message: string, context: { userId: string }): Promise<ParsedIntent> {
+    return this.parseIntent(message, context.userId);
+  }
+
   private provider(): IntentParserProvider {
     return this.config.get("aiProvider") === "openai" ? this.openAi : this.heuristic;
   }

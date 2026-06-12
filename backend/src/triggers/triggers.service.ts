@@ -14,6 +14,14 @@ export class TriggersService {
     private readonly privacy: PrivacyService
   ) {}
 
+  list(userId: string) {
+    return this.prisma.trigger.findMany({
+      where: { userId, status: { not: "DELETED" } },
+      include: { habitTrigger: true },
+      orderBy: { updatedAt: "desc" }
+    });
+  }
+
   async confirm(userId: string, dto: ConfirmTriggerDto) {
     if (!dto.confirmed) throw new BadRequestException("User confirmation is required before creating a trigger.");
     await this.privacy.assertCanCreateTrigger(userId, dto.type);

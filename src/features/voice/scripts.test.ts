@@ -23,4 +23,22 @@ describe("generateVoiceScript", () => {
   it("keeps action prompts confirmation-first", () => {
     expect(generateVoiceScript({ taskTitle: "pay rent", triggerType: "action_prompt", action: "open_payment_app" }, {})).toContain("Please confirm");
   });
+
+  it("generates a weather alert script", () => {
+    expect(
+      generateVoiceScript(
+        { taskTitle: "Check the forecast", triggerType: "weather", place: "Abuja" },
+        { condition: "Rain is likely tomorrow" }
+      )
+    ).toContain("weather in Abuja");
+  });
+
+  it("keeps action prompts behind confirmation", () => {
+    expect(
+      generateVoiceScript(
+        { taskTitle: "Draft proposal email", triggerType: "action_prompt", action: "draft_email" },
+        {}
+      )
+    ).toContain("Please confirm");
+  });
 });

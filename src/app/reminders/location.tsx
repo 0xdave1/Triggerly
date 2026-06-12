@@ -46,12 +46,12 @@ export default function LocationPickerScreen() {
 
   return (
     <TerminalScreen>
-      <TerminalHeader title="location_trigger.map" subtitle="foreground signal · ask when needed" status="context_lock: on" />
-      <TerminalCard title="place_signal.config" tone="cyan" active>
+      <TerminalHeader title="Choose a place" subtitle="Location is requested only for reminders you create." status="ask when needed" />
+      <TerminalCard title="Location details" tone="cyan" active>
         <Text style={styles.body}>manual_search_mvp · current_signal_available</Text>
         <TerminalInput label="place_name" value={placeName} onChangeText={setPlaceName} placeholder="Shoprite, home, office" />
         <TerminalButton variant="secondary" onPress={useCurrentLocation}>
-          USE_CURRENT_SIGNAL
+          Use current location
         </TerminalButton>
       </TerminalCard>
 
@@ -67,7 +67,7 @@ export default function LocationPickerScreen() {
           options={APP_CONFIG.locationRadiusOptions.map((radius) => ({ label: radius === 1000 ? "1km" : `${radius}m`, value: radius }))}
         />
         <Select
-          label="trigger_condition"
+          label="When to remind me"
           value={triggerType}
           onChange={setTriggerType}
           options={[
@@ -78,8 +78,8 @@ export default function LocationPickerScreen() {
       </TerminalCard>
 
       <View style={styles.row}>
-        <TerminalButton onPress={save}>USE_LOCATION</TerminalButton>
-        <TerminalButton variant="secondary" onPress={() => router.back()}>DISCARD</TerminalButton>
+        <TerminalButton onPress={save}>Use this location</TerminalButton>
+        <TerminalButton variant="secondary" onPress={() => router.back()}>Cancel</TerminalButton>
       </View>
     </TerminalScreen>
   );

@@ -21,6 +21,7 @@ export class HeuristicIntentParserProvider implements IntentParserProvider {
       this.parseLocationDeparture(normalized) ??
       this.parseLocationArrival(normalized) ??
       this.parseTravelWeather(normalized) ??
+      this.parseTravelPlan(normalized) ??
       this.parseExchangeRate(normalized) ??
       this.parsePriceLog(normalized) ??
       this.parseDebtMemory(normalized) ??
@@ -125,6 +126,27 @@ export class HeuristicIntentParserProvider implements IntentParserProvider {
     };
   }
 
+  private parseTravelPlan({ original, lower, timePhrase }: NormalizedIntentInput): ParsedIntent | undefined {
+    if (!/\b(?:i(?:'m| am)\s+)?(?:traveling|travelling|going)\s+to\b/.test(lower)) return undefined;
+    const destination = this.match(
+      original,
+      /(?:i(?:'m| am)\s+)?(?:traveling|travelling|going)\s+to\s+([^,.]+?)(?:\s+tomorrow|\s+next|\s+on|,|\.|$)/i
+    );
+    return {
+      intentType: "travel_plan",
+      triggerType: "travel",
+      taskTitle: destination ? `Plan trip to ${destination}` : "Plan upcoming trip",
+      destination,
+      locationCandidate: destination ? { placeName: destination } : undefined,
+      timeCandidate: timePhrase ? { phrase: timePhrase } : undefined,
+      confidence: destination ? 0.78 : 0.55,
+      requiresConfirmation: true,
+      clarificationQuestion: destination
+        ? "Do you want me to check the weather before you leave and create a travel checklist?"
+        : "Where are you traveling to?"
+    };
+  }
+
   private parseExchangeRate({ original, lower }: NormalizedIntentInput): ParsedIntent | undefined {
     if (!/\b(dollar|usd|exchange rate|rate)\b/.test(lower) || !/\b(crosses|reaches|above|below|hits)\b/.test(lower)) return undefined;
     const targetRate = this.parseAmount(this.match(original, /(\d+(?:\.\d+)?\s?[km]?)/i));
@@ -219,6 +241,33 @@ export class HeuristicIntentParserProvider implements IntentParserProvider {
 
   private parseActionPrompt(input: NormalizedIntentInput): ParsedIntent | undefined {
     const { original, lower, timePhrase } = input;
+    const directPayment = original.match(/(?:send|transfer|pay)\s+\p{Sc}?(\d+(?:[,.]\d+)?\s?[km]?)\s+to\s+([^,.]+?)(?:\s+(?:on|by)\s+([^,.]+)|\s+tomorrow|\.|$)/iu);
+    if (directPayment) {
+      const amount = this.parseAmount(directPayment[1]) ?? 0;
+      const recipientName = directPayment[2].trim();
+      const date = directPayment[3]?.trim() ?? timePhrase;
+      return this.sensitiveAction({
+        actionType: ActionType.PAYMENT_REMINDER,
+        taskTitle: `Payment reminder for ${recipientName}`,
+        payload: {
+          recipientName,
+          amount,
+          currency: "NGN",
+          date,
+          executionAllowed: false,
+          safety: "confirmation_required_no_auto_payment"
+        },
+        categories: ["payment"],
+        confidence: amount ? 0.9 : 0.68,
+        extra: {
+          triggerType: "action_confirmation",
+          actionType: "payment_reminder",
+          recipientCandidate: recipientName,
+          timeCandidate: date ? { phrase: date } : undefined,
+          suggestedVoiceScript: `You asked me to prepare a payment reminder for ${recipientName}. No payment will be made automatically.`
+        }
+      });
+    }
     const paymentReminder = original.match(/remind me to send\s+\p{Sc}?(\d+(?:[,.]\d+)?\s?[km]?)\s+to\s+([^,.]+?)(?:\s+(?:on|by)\s+([^,.]+)|\.|$)/iu);
     if (paymentReminder) {
       const amount = this.parseAmount(paymentReminder[1]) ?? 0;

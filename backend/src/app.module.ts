@@ -20,6 +20,8 @@ import { ActionPromptsModule } from "./action-prompts/action-prompts.module";
 import { HealthModule } from "./health/health.module";
 import { MemoryModule } from "./memory/memory.module";
 import { LiveContextModule } from "./live-context/live-context.module";
+import { AgentModule } from "./agent/agent.module";
+import { ChatModule } from "./chat/chat.module";
 
 @Module({
   imports: [
@@ -45,6 +47,8 @@ import { LiveContextModule } from "./live-context/live-context.module";
     ActionPromptsModule,
     MemoryModule,
     LiveContextModule,
+    AgentModule,
+    ChatModule,
     HealthModule
   ]
 })

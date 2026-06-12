@@ -1,5 +1,6 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
+import { useLocalSearchParams } from "expo-router";
 import { ActionPromptCard } from "@/components/reminders/ActionPromptCard";
 import { Select } from "@/components/ui/Select";
 import { TerminalButton } from "@/components/ui/TerminalButton";
@@ -27,6 +28,7 @@ const actionTypes: ActionPromptType[] = [
 ];
 
 export default function ActionsScreen() {
+  const params = useLocalSearchParams<{ actionType?: ActionPromptType; title?: string; payload?: string }>();
   const [actionType, setActionType] = useState<ActionPromptType>("draft_email");
   const [title, setTitle] = useState("Draft email to Mr Ade");
   const [payloadText, setPayloadText] = useState("proposal tomorrow morning");
@@ -43,6 +45,12 @@ export default function ActionsScreen() {
       completed: data.filter((prompt) => prompt.status === "completed")
     };
   }, [prompts.data]);
+
+  useEffect(() => {
+    if (params.actionType && actionTypes.includes(params.actionType)) setActionType(params.actionType);
+    if (params.title) setTitle(params.title);
+    if (params.payload) setPayloadText(params.payload);
+  }, [params.actionType, params.payload, params.title]);
 
   const reset = () => {
     setEditingId(undefined);
@@ -66,27 +74,27 @@ export default function ActionsScreen() {
 
   return (
     <TerminalScreen>
-      <TerminalHeader title="ai_pa.actions" subtitle="prepare only · confirmation required" status="auto_execute: disabled" />
-      <TerminalCard title="new_action_prompt" active>
-        <Select label="action_type" value={actionType} onChange={setActionType} options={actionTypes.map((value) => ({ label: value, value }))} />
-        <TerminalInput label="title" value={title} onChangeText={setTitle} placeholder="Draft email to Mr Ade" />
-        <TerminalInput label="payload_hint" value={payloadText} onChangeText={setPayloadText} placeholder="proposal tomorrow morning" multiline />
+      <TerminalHeader title="Actions" subtitle="Prepare drafts and helpful next steps. You stay in control." status="approval required" />
+      <TerminalCard title="Create an action" active>
+        <Select label="Action type" value={actionType} onChange={setActionType} options={actionTypes.map((value) => ({ label: value.replace(/_/g, " "), value }))} />
+        <TerminalInput label="Title" value={title} onChangeText={setTitle} placeholder="Draft email to Mr Ade" />
+        <TerminalInput label="Details" value={payloadText} onChangeText={setPayloadText} placeholder="Proposal tomorrow morning" multiline />
         {disabledMessage ? <Text style={styles.warning}>{disabledMessage}</Text> : null}
         <TerminalButton disabled={Boolean(disabledMessage) || !title.trim()} loading={actions.create.isPending || actions.update.isPending} onPress={save}>
-          {editingId ? "UPDATE_ACTION" : "CREATE_PENDING_ACTION"}
+          {editingId ? "Update action" : "Prepare action"}
         </TerminalButton>
         {editingId ? (
           <TerminalButton variant="secondary" onPress={reset}>
-            CANCEL_EDIT
+            Cancel edit
           </TerminalButton>
         ) : null}
       </TerminalCard>
 
-      <ActionSection title="pending_actions" prompts={grouped.pending} actions={actions} onEdit={edit} />
-      <ActionSection title="confirmed_actions" prompts={grouped.confirmed} actions={actions} onEdit={edit} />
-      <ActionSection title="completed_actions" prompts={grouped.completed} actions={actions} onEdit={edit} />
-      {!prompts.isPending && !(prompts.data ?? []).length ? <Text style={styles.note}>no_action_prompts</Text> : null}
-      {prompts.isPending ? <Text style={styles.note}>loading_action_center...</Text> : null}
+      <ActionSection title="Needs your approval" prompts={grouped.pending} actions={actions} onEdit={edit} />
+      <ActionSection title="Confirmed" prompts={grouped.confirmed} actions={actions} onEdit={edit} />
+      <ActionSection title="Completed" prompts={grouped.completed} actions={actions} onEdit={edit} />
+      {!prompts.isPending && !(prompts.data ?? []).length ? <Text style={styles.note}>No prepared actions yet.</Text> : null}
+      {prompts.isPending ? <Text style={styles.note}>Loading actions...</Text> : null}
     </TerminalScreen>
   );
 }
@@ -132,12 +140,12 @@ function payloadFrom(actionType: ActionPromptType, text: string) {
 }
 
 function privacyGateMessage(actionType: ActionPromptType, settings: ReturnType<typeof usePrivacySettings>["data"]) {
-  if (actionType === "draft_email" && !isFeatureEnabled(settings, "emailDraftingEnabled")) return "Email drafting is disabled in privacy.config.";
-  if (actionType === "draft_message" && !isFeatureEnabled(settings, "messageDraftingEnabled")) return "Message drafting is disabled in privacy.config.";
-  if (actionType === "payment_reminder" && !isFeatureEnabled(settings, "paymentRemindersEnabled")) return "Payment reminders are disabled in privacy.config.";
+  if (actionType === "draft_email" && !isFeatureEnabled(settings, "emailDraftingEnabled")) return "Email drafting is disabled in Control.";
+  if (actionType === "draft_message" && !isFeatureEnabled(settings, "messageDraftingEnabled")) return "Message drafting is disabled in Control.";
+  if (actionType === "payment_reminder" && !isFeatureEnabled(settings, "paymentRemindersEnabled")) return "Payment reminders are disabled in Control.";
   if (actionType === "open_payment_app" && !isFeatureEnabled(settings, "paymentActionsEnabled")) return "Payment app prompts require explicit permission and confirmation.";
-  if (actionType === "call_contact" && !isFeatureEnabled(settings, "contactAccessEnabled")) return "Contact actions are disabled in privacy.config.";
-  if (actionType === "create_calendar_event" && !isFeatureEnabled(settings, "calendarIntegrationEnabled")) return "Calendar integration is disabled in privacy.config.";
+  if (actionType === "call_contact" && !isFeatureEnabled(settings, "contactAccessEnabled")) return "Contact actions are disabled in Control.";
+  if (actionType === "create_calendar_event" && !isFeatureEnabled(settings, "calendarIntegrationEnabled")) return "Calendar integration is disabled in Control.";
   return undefined;
 }
 

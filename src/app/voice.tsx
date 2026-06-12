@@ -1,90 +1,179 @@
-import { useEffect, useState } from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { useEffect, useMemo, useState } from "react";
+import { StyleSheet, Text } from "react-native";
+import { VoicePreviewCard } from "@/components/reminders/VoicePreviewCard";
+import { PrivacyToggleRow } from "@/components/ui/PrivacyToggleRow";
 import { Select } from "@/components/ui/Select";
-import { TerminalButton } from "@/components/ui/TerminalButton";
 import { TerminalCard } from "@/components/ui/TerminalCard";
 import { TerminalHeader } from "@/components/ui/TerminalHeader";
 import { TerminalScreen } from "@/components/ui/TerminalScreen";
 import { TerminalStatRow } from "@/components/ui/TerminalStatRow";
-import { PrivacyToggleRow } from "@/components/ui/PrivacyToggleRow";
 import { usePrivacySettings, useUpdatePrivacySettings } from "@/features/privacy/hooks";
-import { generateVoiceScript } from "@/features/voice/api";
-import { loadVoiceSettings, saveVoiceSettings } from "@/features/voice/settings";
-import { speakReminder } from "@/features/voice/speech";
-import { defaultVoiceSettings, type VoiceSettings } from "@/features/voice/types";
-import { colors, spacing, typography } from "@/styles/theme";
+import { previewVoiceScript } from "@/features/voice/api";
+import { useUpdateVoiceSettings, useVoiceSettings } from "@/features/voice/hooks";
+import { getAvailableVoices } from "@/features/voice/speech";
+import {
+  defaultVoiceSettings,
+  type AvailableVoice,
+  type VoiceSettings
+} from "@/features/voice/types";
+import type { VoiceStyle } from "@/features/reminders/types";
+import { colors, typography } from "@/styles/theme";
 
-const stylesList = ["calm", "energetic", "professional", "friendly", "minimal"] as const;
+const stylesList: VoiceStyle[] = ["calm", "energetic", "professional", "friendly", "minimal"];
+const volumeOptions = [
+  { label: "60%", value: 0.6 },
+  { label: "80%", value: 0.8 },
+  { label: "100%", value: 1 }
+];
 
-export default function VoiceScreen() {
-  const [settings, setSettings] = useState<VoiceSettings>(defaultVoiceSettings);
-  const [script, setScript] = useState("You're near Shoprite. You asked me to buy cookies.");
+export default function VoiceSettingsScreen() {
+  const voice = useVoiceSettings();
+  const updateVoice = useUpdateVoiceSettings();
   const privacy = usePrivacySettings();
   const updatePrivacy = useUpdatePrivacySettings();
+  const [voices, setVoices] = useState<AvailableVoice[]>([]);
+  const [script, setScript] = useState("You're near Shoprite. You asked me to buy cookies.");
+  const [message, setMessage] = useState<string>();
+  const [generating, setGenerating] = useState(false);
+  const settings = voice.data ?? defaultVoiceSettings;
 
   useEffect(() => {
-    loadVoiceSettings().then(setSettings).catch(() => undefined);
+    getAvailableVoices().then(setVoices).catch(() => undefined);
   }, []);
 
-  const update = async (next: VoiceSettings) => {
-    setSettings(next);
-    await saveVoiceSettings(next);
+  const voiceOptions = useMemo(
+    () =>
+      voices
+        .filter((item) => item.language.toLowerCase().startsWith("en"))
+        .slice(0, 8)
+        .map((item) => ({
+          label: `${item.name} (${item.language})`,
+          value: item.identifier
+        })),
+    [voices]
+  );
+
+  const update = async (input: Partial<VoiceSettings>) => {
+    setMessage(undefined);
+    try {
+      await updateVoice.mutateAsync(input);
+    } catch {
+      setMessage("Voice settings could not sync. Your device copy is still available.");
+    }
+  };
+
+  const toggleVoice = async () => {
+    const enabled = !settings.voiceNotificationsEnabled;
+    await update({ voiceNotificationsEnabled: enabled });
+    try {
+      await updatePrivacy.mutateAsync({ voiceNotificationsEnabled: enabled });
+    } catch {
+      setMessage("Voice preference saved, but the privacy setting could not sync.");
+    }
+  };
+
+  const generatePreview = async () => {
+    setGenerating(true);
+    setMessage(undefined);
+    try {
+      const generated = await previewVoiceScript({
+        intent: {
+          taskTitle: "Buy cookies",
+          triggerType: "location_arrival",
+          locationCandidate: { placeName: "Shoprite" }
+        }
+      });
+      setScript(generated.script);
+    } catch {
+      setMessage("Using the local sample because the voice service is unavailable.");
+    } finally {
+      setGenerating(false);
+    }
   };
 
   return (
     <TerminalScreen>
-      <TerminalHeader title="voice.config" subtitle="foreground preview · OS limits apply" status="voice_nudge_ready" />
-      <TerminalCard title="voice_settings" active>
-        <TerminalStatRow label="platform_limit" value="background voice not guaranteed" tone="amber" />
+      <TerminalHeader
+        title="Choose how Triggerly speaks."
+        subtitle="Voice is optional, private, and only plays after an interaction supported by your device."
+        status="user controlled"
+      />
+
+      <TerminalCard title="Voice settings">
+        <TerminalStatRow label="Background speech" value="Not guaranteed by iOS or Android" tone="amber" />
         <PrivacyToggleRow
-          label="voiceNotificationsEnabled"
+          label="Voice notifications"
           value={settings.voiceNotificationsEnabled}
-          description="Voice is user-selected and previewed in foreground."
-          onToggle={() => update({ ...settings, voiceNotificationsEnabled: !settings.voiceNotificationsEnabled })}
+          description="Speak a reminder after you open its notification."
+          onToggle={toggleVoice}
         />
-        <Select label="voice_style" value={settings.selectedVoiceStyle} onChange={(selectedVoiceStyle) => update({ ...settings, selectedVoiceStyle })} options={stylesList.map((value) => ({ label: value, value }))} />
-        <PrivacyToggleRow label="readFullReminder" value={settings.readFullReminder} onToggle={() => update({ ...settings, readFullReminder: !settings.readFullReminder })} />
-        <PrivacyToggleRow label="readLocationContext" value={settings.readLocationContext} onToggle={() => update({ ...settings, readLocationContext: !settings.readLocationContext })} />
-      </TerminalCard>
-
-      <TerminalCard title="preview_voice" tone="cyan">
-        <Text style={styles.body}>{script}</Text>
-        <View style={styles.row}>
-          <TerminalButton
-            variant="secondary"
-            onPress={async () => {
-              const generated = await generateVoiceScript({ intent: { taskTitle: "buy cookies", triggerType: "location_arrival", locationCandidate: { placeName: "Shoprite" } } }).catch(() => ({ script }));
-              setScript(generated.script);
-            }}
-          >
-            GENERATE_SCRIPT
-          </TerminalButton>
-          <TerminalButton onPress={() => speakReminder(script, settings)}>PREVIEW_VOICE</TerminalButton>
-        </View>
-      </TerminalCard>
-
-      <TerminalCard title="privacy_link" tone="amber">
+        <Select
+          label="Voice style"
+          value={settings.selectedVoiceStyle}
+          onChange={(selectedVoiceStyle) => update({ selectedVoiceStyle })}
+          options={stylesList.map((value) => ({ label: value, value }))}
+        />
+        <Select
+          label="Voice volume"
+          value={settings.voiceVolume}
+          onChange={(voiceVolume) => update({ voiceVolume })}
+          options={volumeOptions}
+        />
+        {voiceOptions.length ? (
+          <Select
+            label="Device voice"
+            value={settings.selectedVoiceId ?? ""}
+            onChange={(selectedVoiceId) => update({ selectedVoiceId })}
+            options={voiceOptions}
+          />
+        ) : (
+          <Text style={styles.note}>Your device will use its default speech voice.</Text>
+        )}
         <PrivacyToggleRow
-          label="voiceNotificationsEnabled"
-          value={Boolean(privacy.data?.voiceNotificationsEnabled)}
-          description="Backend privacy gate for voice notification capability."
-          onToggle={() => updatePrivacy.mutate({ voiceNotificationsEnabled: !privacy.data?.voiceNotificationsEnabled })}
+          label="Read full reminder"
+          value={settings.readFullReminder}
+          description="Turn this off to hear a private generic prompt instead."
+          onToggle={() => update({ readFullReminder: !settings.readFullReminder })}
         />
+        <PrivacyToggleRow
+          label="Read location context"
+          value={settings.readLocationContext}
+          onToggle={() => update({ readLocationContext: !settings.readLocationContext })}
+        />
+        <PrivacyToggleRow
+          label="Read live context"
+          value={settings.readLiveContext}
+          onToggle={() => update({ readLiveContext: !settings.readLiveContext })}
+        />
+        <TerminalStatRow
+          label="Privacy permission"
+          value={privacy.data?.voiceNotificationsEnabled ? "Enabled" : "Disabled"}
+          tone={privacy.data?.voiceNotificationsEnabled ? "green" : "muted"}
+        />
+        {message ? <Text style={styles.message}>{message}</Text> : null}
       </TerminalCard>
+
+      <VoicePreviewCard
+        script={script}
+        settings={settings}
+        onGenerate={generatePreview}
+        generating={generating}
+      />
     </TerminalScreen>
   );
 }
 
 const styles = StyleSheet.create({
-  body: {
+  note: {
     color: colors.textMuted,
-    fontFamily: typography.mono,
+    fontFamily: typography.sans,
     fontSize: typography.small,
     lineHeight: 20
   },
-  row: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: spacing.sm
+  message: {
+    color: colors.warning,
+    fontFamily: typography.sans,
+    fontSize: typography.small,
+    lineHeight: 20
   }
 });

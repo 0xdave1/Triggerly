@@ -68,30 +68,27 @@ export default function SettingsScreen() {
 
   return (
     <TerminalScreen>
-      <TerminalHeader title="privacy.config" subtitle="privacy is a feature, not a footnote" status="privacy_mode: on" />
-      <TerminalCard title="permissions">
-        <TerminalStatRow label="signed_in_as" value={user?.email ?? "unknown"} tone="cyan" />
-        <TerminalStatRow label="notifications" value={notificationStatus} tone={notificationStatus === "granted" ? "green" : "amber"} />
-        <TerminalStatRow label="location" value={locationStatus === "granted" ? "enabled when used" : "ask when needed"} tone={locationStatus === "granted" ? "cyan" : "amber"} />
-        <TerminalStatRow label="microphone" value="tap-to-record only" tone="muted" />
-        <TerminalStatRow label="background_audio" value="disabled" tone="green" />
-        <TerminalStatRow label="voice_input" value="tap_to_record_only" tone="green" />
-        <TerminalStatRow label="voice_notifications" value="user_selected" tone="cyan" />
-        <TerminalStatRow label="auto_transactions" value="disabled" tone="green" />
-        <TerminalStatRow label="auto_payments" value="disabled" tone="green" />
-        <TerminalStatRow label="auto_email_send" value="disabled" tone="green" />
-        <TerminalStatRow label="confirmation_required" value="enabled" tone="amber" />
+      <TerminalHeader title="Control" subtitle="Privacy, permissions, voice, and account settings." status="private by design" />
+      <TerminalCard title="Permissions">
+        <TerminalStatRow label="Signed in as" value={user?.email ?? "unknown"} tone="cyan" />
+        <TerminalStatRow label="Notifications" value={notificationStatus} tone={notificationStatus === "granted" ? "green" : "amber"} />
+        <TerminalStatRow label="Location" value={locationStatus === "granted" ? "enabled when used" : "ask when needed"} tone={locationStatus === "granted" ? "cyan" : "amber"} />
+        <TerminalStatRow label="Microphone" value="tap to use only" tone="muted" />
+        <TerminalStatRow label="Background audio" value="disabled" tone="green" />
+        <TerminalStatRow label="Automatic payments" value="disabled" tone="green" />
+        <TerminalStatRow label="Automatic email sending" value="disabled" tone="green" />
+        <TerminalStatRow label="Confirmation" value="required" tone="amber" />
         {PRIVACY_SETTINGS_ROWS.map(([label, value]) => (
           <TerminalStatRow key={label} label={label} value={value} tone="muted" />
         ))}
         <TerminalStatRow label="data_export" value="available later" tone="muted" />
         <TerminalStatRow label="delete_data" value="available" tone="amber" />
         <TerminalButton variant="secondary" onPress={enableNotifications}>
-          REQUEST_NOTIFICATIONS
+          Enable notifications
         </TerminalButton>
       </TerminalCard>
 
-      <TerminalCard title="privacy.control_center" active>
+      <TerminalCard title="Privacy controls" active>
         {privacyRows.map((row) => (
           <PrivacyToggleRow
             key={row.key}
@@ -103,12 +100,12 @@ export default function SettingsScreen() {
         ))}
       </TerminalCard>
 
-      <TerminalCard title="voice.config" tone="cyan">
-        <TerminalStatRow label="voice_notifications" value={voiceSettings.voiceNotificationsEnabled ? "enabled" : "disabled"} tone={voiceSettings.voiceNotificationsEnabled ? "green" : "muted"} />
-        <TerminalStatRow label="voice_style" value={voiceSettings.selectedVoiceStyle} tone="cyan" />
-        <TerminalStatRow label="read_context" value={voiceSettings.readLocationContext ? "enabled" : "disabled"} tone="amber" />
+      <TerminalCard title="Voice" tone="cyan">
+        <TerminalStatRow label="Voice notifications" value={voiceSettings.voiceNotificationsEnabled ? "enabled" : "disabled"} tone={voiceSettings.voiceNotificationsEnabled ? "green" : "muted"} />
+        <TerminalStatRow label="Voice style" value={voiceSettings.selectedVoiceStyle} tone="cyan" />
+        <TerminalStatRow label="Read context" value={voiceSettings.readLocationContext ? "enabled" : "disabled"} tone="amber" />
         <Select
-          label="voice_style"
+          label="Voice style"
           value={voiceSettings.selectedVoiceStyle}
           onChange={(selectedVoiceStyle: VoiceStyle) => updateVoiceSettings({ ...voiceSettings, selectedVoiceStyle })}
           options={[
@@ -124,33 +121,33 @@ export default function SettingsScreen() {
             variant={voiceSettings.voiceNotificationsEnabled ? "secondary" : "primary"}
             onPress={() => updateVoiceSettings({ ...voiceSettings, voiceNotificationsEnabled: !voiceSettings.voiceNotificationsEnabled })}
           >
-            {voiceSettings.voiceNotificationsEnabled ? "DISABLE_VOICE" : "ENABLE_VOICE"}
+            {voiceSettings.voiceNotificationsEnabled ? "Disable voice" : "Enable voice"}
           </TerminalButton>
           <TerminalButton
             variant="secondary"
             onPress={() => speakReminder("You're near Shoprite. You asked me to buy cookies.", { ...voiceSettings, voiceNotificationsEnabled: true })}
           >
-            PREVIEW_VOICE
+            Preview voice
           </TerminalButton>
           <TerminalButton variant="ghost" onPress={() => router.push("/voice" as never)}>
-            OPEN_VOICE_CONFIG
+            Voice settings
           </TerminalButton>
         </View>
       </TerminalCard>
 
-      <TerminalCard title="privacy_mode_enabled" active>
+      <TerminalCard title="Your privacy boundaries" active>
         <Text style={styles.body}>{PRIVACY_COPY.boundaries}</Text>
         <Text style={styles.body}>{PRIVACY_COPY.location}</Text>
         <Text style={styles.body}>{PRIVACY_COPY.microphone}</Text>
-        <Text style={styles.body}>signal: listening? NO - waiting for user-defined triggers</Text>
+        <Text style={styles.body}>Triggerly waits for instructions you choose to give. It does not listen in the background.</Text>
       </TerminalCard>
 
       <View style={styles.row}>
         <TerminalButton variant="secondary" onPress={logout}>
-          LOGOUT
+          Log out
         </TerminalButton>
         <TerminalButton variant="danger" onPress={deleteLocalData}>
-          DELETE_LOCAL_DATA
+          Delete local data
         </TerminalButton>
       </View>
     </TerminalScreen>

@@ -1,4 +1,4 @@
-import { IsBoolean, IsOptional, IsString } from "class-validator";
+import { IsBoolean, IsIn, IsOptional, IsString } from "class-validator";
 
 export class UpdateVoiceSettingsDto {
   @IsOptional()
@@ -6,7 +6,7 @@ export class UpdateVoiceSettingsDto {
   voiceNotificationsEnabled?: boolean;
 
   @IsOptional()
-  @IsString()
+  @IsIn(["calm", "energetic", "professional", "friendly", "minimal"])
   selectedVoiceStyle?: string;
 
   @IsOptional()
@@ -20,4 +20,8 @@ export class UpdateVoiceSettingsDto {
   @IsOptional()
   @IsBoolean()
   readLocationContext?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  readLiveContext?: boolean;
 }

@@ -2,7 +2,7 @@ import { StyleSheet, View } from "react-native";
 
 export function ScanlineOverlay() {
   return (
-    <View pointerEvents="none" style={[StyleSheet.absoluteFill, styles.overlay]}>
+    <View style={[StyleSheet.absoluteFill, styles.overlay]}>
       {dots.map((dot, index) => (
         <View
           key={index}
@@ -28,7 +28,8 @@ const dots = Array.from({ length: 48 }, (_, index) => ({
 
 const styles = StyleSheet.create({
   overlay: {
-    overflow: "hidden"
+    overflow: "hidden",
+    pointerEvents: "none"
   },
   dot: {
     backgroundColor: "#C1E7D6",

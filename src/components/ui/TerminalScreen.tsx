@@ -2,19 +2,17 @@ import type { PropsWithChildren } from "react";
 import { ScrollView, StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { colors, spacing } from "@/styles/theme";
-import { ScanlineOverlay } from "./ScanlineOverlay";
 
 type TerminalScreenProps = PropsWithChildren<{
   scroll?: boolean;
 }>;
 
 export function TerminalScreen({ children, scroll = true }: TerminalScreenProps) {
-  const content = <View style={styles.content}>{children}</View>;
+  const content = <View style={[styles.content, !scroll && styles.fillContent]}>{children}</View>;
 
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.shell}>
-        <ScanlineOverlay />
         {scroll ? (
           <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled" style={styles.scroll}>
             {content}
@@ -53,5 +51,8 @@ const styles = StyleSheet.create({
     paddingTop: spacing.xl,
     paddingBottom: 48,
     width: "100%"
+  },
+  fillContent: {
+    flex: 1
   }
 });

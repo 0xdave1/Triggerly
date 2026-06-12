@@ -23,14 +23,14 @@ export function ReminderTerminalCard({ reminder, onPress, onComplete, onSnooze }
       <Text style={styles.task}>{reminder.title}</Text>
       {reminder.locationTrigger ? (
         <>
-          <TerminalStatRow label="place" value={reminder.locationTrigger.placeName} tone="cyan" />
-          <TerminalStatRow label="radius" value={`${reminder.locationTrigger.radiusMeters}m`} tone="muted" />
+          <TerminalStatRow label="Place" value={reminder.locationTrigger.placeName} tone="cyan" />
+          <TerminalStatRow label="Radius" value={`${reminder.locationTrigger.radiusMeters}m`} tone="muted" />
         </>
       ) : null}
-      {reminder.timeTrigger ? <TerminalStatRow label="time" value={new Date(reminder.timeTrigger.triggerDateTime).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })} tone="cyan" /> : null}
-      {reminder.habit ? <TerminalStatRow label="frequency" value={`${reminder.habit.frequencyCount}x ${reminder.habit.frequencyType}`} tone="amber" /> : null}
-      {reminder.deliveryMode ? <TerminalStatRow label="delivery_mode" value={reminder.deliveryMode} tone={reminder.voiceEnabled ? "cyan" : "muted"} /> : null}
-      {reminder.actionType ? <TerminalStatRow label="action_locked" value="user_approval_required" tone="amber" /> : null}
+      {reminder.timeTrigger ? <TerminalStatRow label="Time" value={new Date(reminder.timeTrigger.triggerDateTime).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })} tone="cyan" /> : null}
+      {reminder.habit ? <TerminalStatRow label="Frequency" value={`${reminder.habit.frequencyCount}x ${reminder.habit.frequencyType}`} tone="amber" /> : null}
+      {reminder.deliveryMode ? <TerminalStatRow label="Delivery" value={reminder.deliveryMode.replace(/_/g, " ")} tone={reminder.voiceEnabled ? "cyan" : "muted"} /> : null}
+      {reminder.actionType ? <TerminalStatRow label="Action" value="your approval is required" tone="amber" /> : null}
       <View style={styles.actions}>
         {onComplete ? (
           <TerminalButton variant="secondary" onPress={onComplete}>
@@ -53,7 +53,7 @@ export function ReminderTerminalCard({ reminder, onPress, onComplete, onSnooze }
 }
 
 function statusLabel(status: ReminderStatus) {
-  if (status === "active") return "armed";
+  if (status === "active") return "active";
   return status;
 }
 

@@ -41,11 +41,10 @@ const styles = StyleSheet.create({
   },
   label: {
     color: colors.textMuted,
-    fontFamily: typography.code,
-    fontSize: 10,
+    fontFamily: typography.sans,
+    fontSize: 12,
     fontWeight: "700",
-    letterSpacing: 1.4,
-    textTransform: "uppercase"
+    lineHeight: 18
   },
   inputWrap: {
     alignItems: "center",

@@ -12,7 +12,7 @@ export function TerminalHeader({ title = "Triggerly", subtitle = "Private remind
   return (
     <View style={styles.header}>
       <View style={styles.topline}>
-        <Text style={styles.brand}>TRIGGERLY</Text>
+        <Text style={styles.brand}>Triggerly</Text>
         <StatusPill label={status} />
       </View>
       <View style={styles.titleGroup}>
@@ -42,7 +42,7 @@ const styles = StyleSheet.create({
     fontFamily: typography.sans,
     fontSize: 12,
     fontWeight: "800",
-    letterSpacing: 1.5
+    letterSpacing: 0
   },
   titleGroup: {
     gap: spacing.sm,

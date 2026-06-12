@@ -11,6 +11,11 @@ type VoiceScriptReminder = {
 
 type VoiceScriptContext = {
   count?: number;
+  condition?: string;
+  base?: string;
+  quote?: string;
+  rate?: number;
+  topTask?: string;
 };
 
 export function generateVoiceScript(reminder: VoiceScriptReminder, context: VoiceScriptContext): string {
@@ -24,6 +29,10 @@ export function generateVoiceScript(reminder: VoiceScriptReminder, context: Voic
       return `You're leaving ${place}. Remember to ${task}.`;
     case "habit":
       return `You haven't completed ${reminder.habit ?? task} yet. Want to do it now?`;
+    case "weather":
+      return `The weather in ${place} may affect your plan. ${context.condition ?? "Conditions have changed"}. You may want to prepare.`;
+    case "exchange_rate":
+      return `The ${context.base ?? "base"}/${context.quote ?? "quote"} rate has reached ${context.rate ?? "your target"}. This matches your alert.`;
     case "errand_group": {
       const tasks = reminder.tasks?.join(", ") ?? task;
       return `You have ${context.count ?? reminder.tasks?.length ?? 1} things to do at ${place}: ${tasks}.`;

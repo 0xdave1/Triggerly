@@ -16,7 +16,7 @@ const options: Array<{ label: string; value: ReminderType }> = [
 export function TriggerTypeSelector({ value, onChange }: TriggerTypeSelectorProps) {
   return (
     <View style={styles.wrap}>
-      <Text style={styles.label}>trigger_type</Text>
+      <Text style={styles.label}>Reminder type</Text>
       <View style={styles.row}>
         {options.map((option) => {
           const active = option.value === value;

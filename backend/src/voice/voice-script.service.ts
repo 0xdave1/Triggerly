@@ -8,19 +8,28 @@ export class VoiceScriptService {
   constructor(private readonly prisma: PrismaService) {}
 
   async generateVoiceScript(userId: string, dto: GenerateScriptDto) {
-    if (dto.reminderId) return this.generateForReminder(userId, dto.reminderId, dto.context);
-    if (dto.intent) return { script: this.generateForIntent(dto.intent, dto.context) };
+    const settings = await this.prisma.userVoiceSetting.upsert({ where: { userId }, create: { userId }, update: {} });
+    if (dto.reminderId) return this.generateForReminder(userId, dto.reminderId, dto.context, settings.selectedVoiceStyle);
+    if (dto.intent) return { script: this.applyStyle(this.generateForIntent(dto.intent, dto.context), settings.selectedVoiceStyle) };
     throw new BadRequestException("Provide reminderId or intent.");
   }
 
-  async generateForReminder(userId: string, reminderId: string, context?: Record<string, unknown>) {
+  async generatePreviewScript(userId: string, dto: GenerateScriptDto) {
+    const settings = await this.prisma.userVoiceSetting.upsert({ where: { userId }, create: { userId }, update: {} });
+    const base = dto.intent
+      ? this.generateForIntent(dto.intent, dto.context)
+      : "You have one important reminder ready to review.";
+    return { script: this.applyStyle(base, settings.selectedVoiceStyle) };
+  }
+
+  async generateForReminder(userId: string, reminderId: string, context?: Record<string, unknown>, style = "calm") {
     const reminder = await this.prisma.reminder.findFirst({
       where: { id: reminderId, userId, status: { not: "DELETED" } },
       include: { locationTrigger: true, habit: true, actionPrompt: true, contactMemory: true }
     });
     if (!reminder) throw new NotFoundException("Reminder not found.");
 
-    return { script: this.generate(reminder, context) };
+    return { script: this.applyStyle(this.generate(reminder, context), style) };
   }
 
   generate(reminder: {
@@ -33,12 +42,9 @@ export class VoiceScriptService {
     const task = reminder.title.toLowerCase();
     const actionType = reminder.actionPrompt?.actionType;
 
-    if (actionType === ActionType.OPEN_PAYMENT_APP) return `You asked to send money. Please confirm before taking action.`;
-    if (actionType === ActionType.DRAFT_EMAIL) return `You asked to email someone about ${task}. Review the draft before sending.`;
-    if (actionType === ActionType.DRAFT_MESSAGE) return `You asked me to prepare a message. Review it before sending.`;
-    if (actionType === ActionType.CREATE_CALENDAR_EVENT) return `You asked me to prepare a calendar event. Please confirm before I continue.`;
     if (actionType === ActionType.GENERATE_CHECKLIST) return `You asked me to generate a checklist for ${task}.`;
     if (actionType === ActionType.CALL_CONTACT) return `You asked to call ${reminder.contactMemory?.name ?? task}. Please confirm before I continue.`;
+    if (actionType) return `You asked me to prepare ${this.actionLabel(actionType)}. Please review and confirm before I continue.`;
 
     if (reminder.locationTrigger?.triggerType === LocationTriggerType.DEPARTURE) {
       return `You're leaving ${reminder.locationTrigger.placeName}. Remember to ${task}.`;
@@ -46,7 +52,7 @@ export class VoiceScriptService {
     if (reminder.locationTrigger?.triggerType === LocationTriggerType.ARRIVAL) {
       return `You're near ${reminder.locationTrigger.placeName}. You asked me to remind you to ${task}.`;
     }
-    if (reminder.type === ReminderType.HABIT) return `You haven't completed ${task} yet. Want to do it now?`;
+    if (reminder.type === ReminderType.HABIT) return `You haven't completed ${task} yet. Do you want to do it now?`;
     if (context?.errandCount && context?.placeName) {
       const tasks = Array.isArray(context.tasks) ? `: ${context.tasks.join(", ")}` : ".";
       return `You have ${context.errandCount} things to do at ${context.placeName}${tasks}`;
@@ -62,15 +68,29 @@ export class VoiceScriptService {
     const place =
       String((intent.locationCandidate as { placeName?: unknown } | undefined)?.placeName ?? context?.placeName ?? "this place");
 
-    if (action?.actionType === ActionType.OPEN_PAYMENT_APP) return `You asked to send money. Please confirm before taking action.`;
-    if (action?.actionType === ActionType.DRAFT_EMAIL) return `You asked to email someone about ${task.toLowerCase()}. Review the draft before sending.`;
+    if (action?.actionType) return `You asked me to prepare ${this.actionLabel(action.actionType)}. Please review and confirm before I continue.`;
     if (triggerType === "location_departure") return `You're leaving ${place}. Remember to ${task.toLowerCase()}.`;
     if (triggerType === "location_arrival") return `You're near ${place}. You asked me to ${task.toLowerCase()}.`;
-    if (triggerType === "weather") return `It may rain in ${place} around ${String(context?.time ?? "your travel time")}. You may want to prepare before traveling.`;
-    if (triggerType === "exchange_rate") return `The ${String(context?.currency ?? "currency")} rate has reached your target of ${String(context?.targetRate ?? "the saved rate")}.`;
+    if (triggerType === "weather") return `The weather in ${place} may affect your plan. ${String(context?.condition ?? "Conditions have changed")}. You may want to prepare.`;
+    if (triggerType === "exchange_rate") return `The ${String(context?.base ?? "base")}/${String(context?.quote ?? "quote")} rate has reached ${String(context?.rate ?? context?.targetRate ?? "your target")}. This matches your alert.`;
     if (triggerType === "price") return `You logged ${String(context?.item ?? task)} before. Today's price is ${String(context?.newPrice ?? "ready to review")}.`;
-    if (triggerType === "habit") return `You haven't completed ${task.toLowerCase()} yet. Want to do it now?`;
+    if (triggerType === "habit") return `You haven't completed ${task.toLowerCase()} yet. Do you want to do it now?`;
+    if (String(intent.intentType ?? "") === "daily_briefing_request") {
+      return `Good morning. You have ${String(context?.count ?? 1)} important triggers today. First, ${String(context?.topTask ?? task)}.`;
+    }
     return `You asked me to remind you to ${task.toLowerCase()}.`;
+  }
+
+  private applyStyle(script: string, style: string) {
+    if (style === "energetic") return `Quick heads-up. ${script}`;
+    if (style === "professional") return `Reminder. ${script}`;
+    if (style === "friendly") return `Hi there. ${script}`;
+    if (style === "minimal") return script.replace(/You asked me to /g, "").replace(/Do you want to do it now\?/g, "Ready when you are.");
+    return script;
+  }
+
+  private actionLabel(actionType: string) {
+    return actionType.toLowerCase().replace(/_/g, " ");
   }
 
   groupErrands(reminders: Array<{ title: string; locationTrigger?: { placeName: string } | null }>) {

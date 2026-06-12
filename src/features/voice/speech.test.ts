@@ -4,6 +4,6 @@ import { defaultVoiceSettings } from "./types";
 
 describe("voice playback gate", () => {
   it("does not speak when voice notifications are disabled", async () => {
-    await expect(speakReminder("test", { ...defaultVoiceSettings, voiceNotificationsEnabled: false })).resolves.toBeUndefined();
+    await expect(speakReminder("test", { ...defaultVoiceSettings, voiceNotificationsEnabled: false })).resolves.toBe(false);
   });
 });

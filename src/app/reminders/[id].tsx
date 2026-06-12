@@ -33,10 +33,10 @@ export default function ReminderDetailScreen() {
   if (!reminderQuery.isLoading && !reminder) {
     return (
       <TerminalScreen>
-        <TerminalHeader title="trigger_not_found" subtitle="record unavailable" status="system: idle" />
+        <TerminalHeader title="Reminder not found" subtitle="This reminder may have been deleted or is unavailable." status="unavailable" />
         <TerminalCard title="error">
           <Text style={styles.body}>reminder_not_found · it may have been deleted</Text>
-          <TerminalButton onPress={() => router.replace("/")}>BACK_HOME</TerminalButton>
+          <TerminalButton onPress={() => router.replace("/(tabs)/triggers")}>Back to triggers</TerminalButton>
         </TerminalCard>
       </TerminalScreen>
     );
@@ -45,25 +45,25 @@ export default function ReminderDetailScreen() {
   if (!reminder) {
     return (
       <TerminalScreen>
-        <Text style={styles.body}>loading_trigger...</Text>
+        <Text style={styles.body}>Loading reminder...</Text>
       </TerminalScreen>
     );
   }
 
   return (
     <TerminalScreen>
-      <TerminalHeader title="trigger.detail" subtitle="reminders fire when conditions match" status="privacy_mode: on" />
-      <TerminalCard title={`${reminder.type}_trigger`} active={reminder.status === "active"}>
+      <TerminalHeader title={reminder.title} subtitle="This reminder runs only when its chosen condition matches." status={reminder.status} />
+      <TerminalCard title={`${reminder.type} reminder`} active={reminder.status === "active"}>
         <View style={styles.header}>
           <Text style={styles.title}>{reminder.title}</Text>
           <TerminalBadge label={reminder.status === "active" ? "armed" : reminder.status} tone={reminder.status === "snoozed" ? "amber" : reminder.status === "completed" ? "grey" : "green"} />
         </View>
         {reminder.notes ? <Text style={styles.body}>{reminder.notes}</Text> : null}
-        <TerminalStatRow label="trigger_type" value={reminder.type} tone="cyan" />
+        <TerminalStatRow label="Type" value={reminder.type} tone="cyan" />
         <TerminalStatRow label="status" value={reminder.status === "active" ? "armed" : reminder.status} tone="green" />
       </TerminalCard>
 
-      <TerminalCard title="trigger_details">
+      <TerminalCard title="Details">
         {reminder.timeTrigger ? <TerminalStatRow label="time" value={formatDateTime(reminder.timeTrigger.triggerDateTime)} tone="cyan" /> : null}
         {reminder.locationTrigger ? (
           <>
@@ -83,10 +83,10 @@ export default function ReminderDetailScreen() {
       </TerminalCard>
 
       <View style={styles.actions}>
-        <TerminalButton onPress={() => actions.complete.mutate(id)}>MARK_DONE</TerminalButton>
-        <TerminalButton variant="secondary" onPress={() => actions.snooze.mutate(id)}>SNOOZE</TerminalButton>
-        <TerminalButton variant="secondary" onPress={() => router.push({ pathname: "/reminders/new", params: { id } })}>EDIT</TerminalButton>
-        <TerminalButton variant="danger" onPress={remove}>DELETE</TerminalButton>
+        <TerminalButton onPress={() => actions.complete.mutate(id)}>Mark done</TerminalButton>
+        <TerminalButton variant="secondary" onPress={() => actions.snooze.mutate(id)}>Snooze</TerminalButton>
+        <TerminalButton variant="secondary" onPress={() => router.push({ pathname: "/reminders/new", params: { id } })}>Edit</TerminalButton>
+        <TerminalButton variant="danger" onPress={remove}>Delete</TerminalButton>
       </View>
     </TerminalScreen>
   );

@@ -15,16 +15,16 @@ export default function HabitScreen() {
 
   return (
     <TerminalScreen>
-      <TerminalHeader title="habit_loop.config" subtitle="routine nudges · user-defined cadence" status="system: armed" />
+      <TerminalHeader title="Habits" subtitle="Routine reminders using a schedule you choose." status="active" />
       <View style={styles.row}>
         <TerminalButton variant="secondary" onPress={() => router.push("/reminders/new")}>
-          NEW_HABIT_LOOP
+          Create habit
         </TerminalButton>
       </View>
 
       {habits.length === 0 ? (
-        <TerminalCard title="habit_queue_empty">
-          <Text style={styles.body}>no_habit_loops · create daily, weekly, monthly, or custom cadence</Text>
+        <TerminalCard title="No habits yet">
+          <Text style={styles.body}>Create a daily, weekly, monthly, or custom reminder.</Text>
         </TerminalCard>
       ) : null}
 

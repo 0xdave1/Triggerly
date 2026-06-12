@@ -6,11 +6,11 @@ import { colors, typography } from "@/styles/theme";
 
 export function MemoryCard({ item }: { item: MemoryItem }) {
   return (
-    <TerminalCard title={`memory.${item.type}`} tone={item.type === "debt" ? "amber" : "cyan"}>
+    <TerminalCard title={`${item.type} memory`} tone={item.type === "debt" ? "amber" : "cyan"}>
       <Text style={styles.title}>{item.title}</Text>
       <Text style={styles.body}>{item.body}</Text>
-      <TerminalStatRow label="source" value={item.source ?? "user_confirmed"} tone="muted" />
-      <TerminalStatRow label="confidence" value={item.confidence ? `${Math.round(item.confidence * 100)}%` : "manual"} tone="green" />
+      <TerminalStatRow label="Source" value={(item.source ?? "user confirmed").replace(/_/g, " ")} tone="muted" />
+      <TerminalStatRow label="Confidence" value={item.confidence ? `${Math.round(item.confidence * 100)}%` : "manual"} tone="green" />
     </TerminalCard>
   );
 }

@@ -31,14 +31,14 @@ export default function LiveContextScreen() {
 
   return (
     <TerminalScreen>
-      <TerminalHeader title="live_context.engine" subtitle="weather · exchange · price memory" status="providers: optional" />
+      <TerminalHeader title="Live alerts" subtitle="Weather, exchange rates, travel, and prices." status="providers optional" />
 
-      <TerminalCard title="weather.context" tone="cyan">
-        <TerminalInput label="current_location" value={location} onChangeText={setLocation} />
-        <TerminalInput label="travel_destination" value={destination} onChangeText={setDestination} />
+      <TerminalCard title="Weather" tone="cyan">
+        <TerminalInput label="Current location" value={location} onChangeText={setLocation} />
+        <TerminalInput label="Travel destination" value={destination} onChangeText={setDestination} />
         {!weatherEnabled ? <Text style={styles.warning}>Weather triggers are disabled in privacy settings.</Text> : null}
         <View style={styles.row}>
-          <TerminalButton variant="secondary" onPress={() => live.weather.mutate({ location })}>CHECK_WEATHER</TerminalButton>
+          <TerminalButton variant="secondary" onPress={() => live.weather.mutate({ location })}>Check weather</TerminalButton>
           <TerminalButton
             disabled={!weatherEnabled}
             onPress={() =>
@@ -51,18 +51,18 @@ export default function LiveContextScreen() {
               })
             }
           >
-            CREATE_WEATHER_TRIGGER
+            Create weather alert
           </TerminalButton>
         </View>
-        <LiveContextCard title="weather_result" result={live.weather.data} />
+        <LiveContextCard title="Weather result" result={live.weather.data} />
       </TerminalCard>
 
-      <TerminalCard title="exchange_rate.context" tone="cyan">
-        <TerminalStatRow label="pair" value="USD/NGN" tone="cyan" />
-        <TerminalInput label="target_rate" value={targetRate} onChangeText={setTargetRate} keyboardType="numeric" />
+      <TerminalCard title="Exchange rate" tone="cyan">
+        <TerminalStatRow label="Currency pair" value="USD/NGN" tone="cyan" />
+        <TerminalInput label="Target rate" value={targetRate} onChangeText={setTargetRate} keyboardType="numeric" />
         {!exchangeEnabled ? <Text style={styles.warning}>Exchange rate triggers are disabled in privacy settings.</Text> : null}
         <View style={styles.row}>
-          <TerminalButton variant="secondary" onPress={() => live.exchangeRate.mutate({ base: "USD", quote: "NGN" })}>CHECK_RATE</TerminalButton>
+          <TerminalButton variant="secondary" onPress={() => live.exchangeRate.mutate({ base: "USD", quote: "NGN" })}>Check rate</TerminalButton>
           <TerminalButton
             disabled={!exchangeEnabled}
             onPress={() =>
@@ -75,16 +75,16 @@ export default function LiveContextScreen() {
               })
             }
           >
-            CREATE_RATE_ALERT
+            Create rate alert
           </TerminalButton>
         </View>
-        <LiveContextCard title="exchange_result" result={live.exchangeRate.data} />
+        <LiveContextCard title="Exchange result" result={live.exchangeRate.data} />
       </TerminalCard>
 
-      <TerminalCard title="price_memory.log" tone="amber">
+      <TerminalCard title="Price memory" tone="amber">
         {!priceEnabled ? <Text style={styles.warning}>Price memory is disabled in privacy settings.</Text> : null}
-        <TerminalInput label="item" value={item} onChangeText={setItem} />
-        <TerminalInput label="price" value={price} onChangeText={setPrice} keyboardType="numeric" />
+        <TerminalInput label="Item" value={item} onChangeText={setItem} />
+        <TerminalInput label="Price" value={price} onChangeText={setPrice} keyboardType="numeric" />
         <TerminalButton
           disabled={!priceEnabled || !item.trim()}
           onPress={() =>
@@ -97,7 +97,7 @@ export default function LiveContextScreen() {
             })
           }
         >
-          LOG_PRICE
+          Save price
         </TerminalButton>
         <TerminalButton
           variant="secondary"
@@ -111,18 +111,18 @@ export default function LiveContextScreen() {
             })
           }
         >
-          CREATE_PRICE_TRIGGER
+          Create price alert
         </TerminalButton>
         {(priceLogs.data ?? []).slice(0, 3).map((entry) => (
           <TerminalStatRow key={entry.id} label={entry.itemName} value={`${entry.currency} ${entry.price} @ ${entry.placeName ?? "unknown"}`} tone="muted" />
         ))}
       </TerminalCard>
 
-      <TerminalCard title="active_live_triggers" active>
+      <TerminalCard title="Active live alerts" active>
         {(triggers.data ?? []).map((trigger) => (
           <TerminalStatRow key={trigger.id} label={trigger.title} value={`${trigger.type}:${trigger.status}`} tone={trigger.status === "ACTIVE" ? "green" : "amber"} />
         ))}
-        {!triggers.data?.length ? <Text style={styles.warning}>no_active_live_context_triggers</Text> : null}
+        {!triggers.data?.length ? <Text style={styles.warning}>No live alerts yet.</Text> : null}
       </TerminalCard>
 
       {live.weather.error || live.exchangeRate.error ? <Text style={styles.error}>{getFriendlyApiError(live.weather.error ?? live.exchangeRate.error)}</Text> : null}

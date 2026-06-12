@@ -17,15 +17,15 @@ export default function BriefingScreen() {
 
   return (
     <TerminalScreen>
-      <TerminalHeader title="daily_briefing" subtitle="local briefing from confirmed data" status="brief: ready" />
-      <TerminalCard title="morning.brief" active>
+      <TerminalHeader title="Daily briefing" subtitle="A summary built only from data you confirmed." status="ready" />
+      <TerminalCard title="Morning">
         <TerminalStatRow label="today_triggers" value={String(today.length)} />
         <TerminalStatRow label="habits_due" value={String(habitsDue.length)} tone="cyan" />
         <TerminalStatRow label="pending_actions" value="review actions screen" tone="amber" />
         <TerminalStatRow label="weather_context" value="provider_not_configured" tone="muted" />
         <TerminalStatRow label="important_memory" value={memory.data?.[0]?.title ?? "none"} tone="muted" />
       </TerminalCard>
-      <TerminalCard title="night.brief" tone="amber">
+      <TerminalCard title="Evening" tone="amber">
         <TerminalStatRow label="completed_triggers" value={String(completed.length)} />
         <TerminalStatRow label="missed_or_postponed" value={String(allReminders.filter((item) => item.status === "snoozed").length)} tone="amber" />
         <TerminalStatRow label="habits_not_done" value={String(habitsDue.length)} tone="cyan" />

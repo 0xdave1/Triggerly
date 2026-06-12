@@ -148,3 +148,31 @@ export enum PriceLogSource {
   OCR = "OCR",
   AI_PARSE = "AI_PARSE"
 }
+
+export enum ChatMessageRole {
+  USER = "USER",
+  ASSISTANT = "ASSISTANT",
+  SYSTEM = "SYSTEM",
+  TOOL = "TOOL"
+}
+
+export enum AgentRunStatus {
+  PLANNING = "PLANNING",
+  WAITING_FOR_CONFIRMATION = "WAITING_FOR_CONFIRMATION",
+  EXECUTING = "EXECUTING",
+  COMPLETED = "COMPLETED",
+  FAILED = "FAILED",
+  CANCELLED = "CANCELLED"
+}
+
+export enum ToolExecutionStatus {
+  PENDING = "PENDING",
+  SUCCESS = "SUCCESS",
+  FAILED = "FAILED"
+}
+
+export enum UserApprovalDecision {
+  APPROVED = "APPROVED",
+  REJECTED = "REJECTED",
+  EDITED = "EDITED"
+}
