@@ -21,10 +21,14 @@ npm run start:dev
 - `PORT`
 - `NODE_ENV`
 - `CORS_ORIGINS`
+- `AI_PROVIDER=freemodel`
+- `AI_BASE_URL=https://api.freemodel.dev`
+- `OPENAI_API_KEY` required when FreeModel is selected
+- `AI_MODEL=gpt-5.5`
+- `AI_REASONING_EFFORT=xhigh`
+- `AI_DISABLE_RESPONSE_STORAGE=true`
 - `REDIS_URL` optional
 - `ENABLE_SWAGGER` optional
-- `AI_PROVIDER` optional
-- `OPENAI_API_KEY` optional and unused by the MVP heuristic parser
 
 ## Render Deployment
 
@@ -62,10 +66,17 @@ JWT_SECRET=use_a_32_plus_character_random_secret
 JWT_EXPIRES_IN=7d
 CORS_ORIGINS=https://your-vercel-domain.vercel.app,http://localhost:8081
 ENABLE_SWAGGER=false
-AI_PROVIDER=heuristic
+AI_PROVIDER=freemodel
+AI_BASE_URL=https://api.freemodel.dev
+OPENAI_API_KEY=your_freemodel_key
+AI_MODEL=gpt-5.5
+AI_REASONING_EFFORT=xhigh
+AI_DISABLE_RESPONSE_STORAGE=true
 ```
 
 Use raw env values in the Render dashboard. Do not wrap `DATABASE_URL` or other values in quotes.
+Keep `OPENAI_API_KEY` only in Render/backend environment variables. It must never
+be exposed through Expo or other public frontend variables.
 
 ## API Overview
 
@@ -87,6 +98,17 @@ Use raw env values in the Render dashboard. Do not wrap `DATABASE_URL` or other 
 - `PATCH /devices/:id`
 - `GET /privacy/export`
 - `DELETE /privacy/delete-account`
+- `POST /chat/messages`
+- `GET /chat/conversations`
+- `GET /chat/conversations/:id`
+- `DELETE /chat/conversations/:id`
+- `GET /agent-runs/:id`
+- `POST /agent-runs/:id/confirm`
+- `POST /agent-runs/:id/reject`
+- `POST /agent-runs/:id/items/:itemId/confirm`
+- `POST /agent-runs/:id/items/:itemId/reject`
+- `POST /agent-runs/:id/items/:itemId/edit`
+- `POST /ai/parse-intent`
 - `POST /ai/parse-reminder`
 - `POST /ai/parse-trigger`
 - `GET /voice-settings`
@@ -118,11 +140,38 @@ The AI endpoints only return suggestions with `requiresConfirmation: true`; they
 
 The parser never executes actions, sends messages, sends money, or reads private messages.
 
+Chat plans use the provider-neutral `AiProvider` interface. With
+`AI_PROVIDER=freemodel`, Triggerly calls FreeModel's OpenAI-compatible Responses
+API from the backend. The response is JSON-parsed and Zod-validated. Provider
+errors or invalid plans fall back to the deterministic provider, so reminders can
+still be planned without exposing a provider key to the mobile app.
+
+Run a provider smoke check without printing secrets:
+
+```bash
+npm run smoke:ai
+```
+
+The smoke command uses FreeModel when both `AI_PROVIDER=freemodel` and
+`OPENAI_API_KEY` are present; otherwise it verifies the deterministic fallback.
+
 ## Confirmation Model
 
 Action prompts are created with `PENDING_CONFIRMATION`. Confirming an action prompt only marks it `CONFIRMED`; MVP backend code does not call payment, email, maps, phone, or URL providers.
 
 Sensitive action payloads are annotated with `confirmation_required_no_auto_execute`.
+
+Chat uses the same boundary. `POST /chat/messages` may create a conversation, message, agent run, and proposed plan, but it does not create the planned records. Only the agent confirmation endpoints execute approved plan items. Rejected items create no reminder, memory, live alert, or action prompt.
+
+Agent data is persisted in:
+
+- `Conversation`
+- `ChatMessage`
+- `AgentRun`
+- `ToolExecution`
+- `UserApproval`
+
+All plan, input, output, and edited-payload JSON is converted with the shared Prisma JSON helpers.
 
 ## Voice Settings And Scripts
 
@@ -139,6 +188,9 @@ The backend stores text settings/scripts only. It does not store raw audio or im
 
 ## MVP Limitations
 
+- Chat planning is synchronous. FreeModel is used when configured, with a deterministic fallback. Streaming and background agent workers are deferred.
+- The local mobile parser can show an offline plan, but confirmation requires the backend so synced records are not silently forked.
+- Location plans can be proposed before coordinates are selected; production geofencing still requires native mobile setup and user permission.
 - Notification delivery is abstracted and queue-ready, but push provider delivery is a placeholder.
 - Location geofencing is persisted for clients/native workers to act on; the backend does not poll device GPS.
 - Account deletion is a safe placeholder that requires an explicit confirmation string and soft-deletes user reminders/devices.

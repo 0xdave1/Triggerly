@@ -1,4 +1,3 @@
-import { randomUUID } from "node:crypto";
 import { ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
 import {
   ActionType,
@@ -15,9 +14,9 @@ import {
   TriggerType,
   UserApprovalDecision
 } from "@/common/enums";
-import { toNullablePrismaJson, toPrismaJson } from "@/common/utils/prisma-json";
+import { toPrismaJson } from "@/common/utils/prisma-json";
 import { ActionPromptsService } from "@/action-prompts/action-prompts.service";
-import { AiIntentService } from "@/ai/ai-intent.service";
+import { AiService } from "@/ai/ai.service";
 import type { ParsedIntent } from "@/ai/intent-types";
 import { LiveContextService } from "@/live-context/live-context.service";
 import { MemoryService } from "@/memory/memory.service";
@@ -32,7 +31,7 @@ import type { AgentExecutionResult, AgentPlan, AgentPlanItem } from "./agent.typ
 export class AgentOrchestratorService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly ai: AiIntentService,
+    private readonly ai: AiService,
     private readonly privacy: PrivacyService,
     private readonly reminders: RemindersService,
     private readonly triggers: TriggersService,
@@ -44,17 +43,25 @@ export class AgentOrchestratorService {
 
   async createRun(userId: string, conversationId: string, userInput: string) {
     const settings = await this.privacy.getSettings(userId);
-    const plan = settings.aiParsingEnabled
-      ? await this.buildPlan(userId, userInput, settings)
-      : this.featureDisabledPlan("AI parsing is disabled. Enable it in Control to let Triggerly build a plan.", "aiParsingEnabled");
+    const plan = this.applyPrivacyGates(
+      await this.ai.createAgentPlan(userId, userInput, {
+        timezone: "Africa/Lagos",
+        locale: "en-NG"
+      }),
+      settings
+    );
+    const status = plan.requiresConfirmation
+      ? AgentRunStatus.WAITING_FOR_CONFIRMATION
+      : AgentRunStatus.COMPLETED;
 
     const run = await this.prisma.agentRun.create({
       data: {
         userId,
         conversationId,
-        status: AgentRunStatus.WAITING_FOR_CONFIRMATION,
+        status,
         userInput,
-        plan: toPrismaJson(plan)
+        plan: toPrismaJson(plan),
+        completedAt: status === AgentRunStatus.COMPLETED ? new Date() : undefined
       }
     });
     return { ...run, plan };
@@ -72,10 +79,21 @@ export class AgentOrchestratorService {
   async confirmRun(userId: string, id: string, itemIds?: string[]) {
     const run = await this.findOwnedRun(userId, id);
     const plan = this.readPlan(run.plan);
-    const selected = new Set(itemIds ?? plan.items.filter((item) => item.type !== "ask_clarification").map((item) => item.id));
+    const selected = new Set(
+      itemIds ??
+        plan.items
+          .filter((item) => this.isActionablePlanItem(item))
+          .map((item) => item.id)
+    );
 
     for (const item of plan.items) {
-      if (!selected.has(item.id) || item.status !== "proposed") continue;
+      if (
+        !selected.has(item.id) ||
+        item.status !== "proposed" ||
+        !this.isActionablePlanItem(item)
+      ) {
+        continue;
+      }
       item.status = "confirmed";
       await this.prisma.userApproval.create({
         data: {
@@ -95,6 +113,19 @@ export class AgentOrchestratorService {
     const created: AgentExecutionResult["created"] = [];
     let failedCount = 0;
     for (const item of plan.items.filter((candidate) => candidate.status === "confirmed")) {
+      if (typeof item.payload.blockedBy === "string") {
+        failedCount += 1;
+        const setting = item.payload.blockedBy;
+        const message = `${this.settingLabel(setting)} is disabled in Control.`;
+        item.status = "failed";
+        item.error = message;
+        item.result = {
+          status: "blocked_by_privacy",
+          setting,
+          message
+        };
+        continue;
+      }
       try {
         const output = await this.executeItem(userId, id, item);
         item.status = "completed";
@@ -192,137 +223,6 @@ export class AgentOrchestratorService {
     return { id, plan };
   }
 
-  private async buildPlan(userId: string, input: string, settings: Record<string, boolean | string | number | Date | null>) {
-    const clauses = this.splitMessage(input);
-    const intents = await Promise.all(clauses.map((clause) => this.ai.parseUserMessage(clause, { userId })));
-    const items = intents.flatMap((intent) => this.planItemsFromIntent(intent, settings));
-    const actionable = items.filter((item) => item.type !== "ask_clarification" && item.type !== "answer_only").length;
-    return {
-      id: randomUUID(),
-      summary:
-        actionable > 0
-          ? `I found ${actionable} ${actionable === 1 ? "thing" : "things"} to set up. Review the plan before I continue.`
-          : items[0]?.description ?? "I need a little more detail.",
-      requiresConfirmation: actionable > 0,
-      items
-    } satisfies AgentPlan;
-  }
-
-  private planItemsFromIntent(intent: ParsedIntent, settings: Record<string, boolean | string | number | Date | null>): AgentPlanItem[] {
-    if (intent.intentType === "unknown") {
-      return [this.item("ask_clarification", "A little more detail", intent.clarificationQuestion ?? "Should this be a reminder, memory, or action?", "low", {}, false)];
-    }
-    if (intent.intentType === "daily_briefing_request") {
-      return [this.item("answer_only", "Prepare today's briefing", "Summarize today's active triggers, habits, and pending actions.", "low", { intent }, false)];
-    }
-    if (intent.intentType === "travel_plan" && !intent.weatherCandidate) {
-      return [
-        this.item(
-          "ask_clarification",
-          `Trip to ${intent.destination ?? "your destination"}`,
-          intent.clarificationQuestion ?? "Do you want me to check the weather before you leave and prepare a travel checklist?",
-          "low",
-          { intent },
-          false
-        )
-      ];
-    }
-    if (["debt_memory", "promise_memory", "memory", "price_log"].includes(intent.intentType)) {
-      const item = this.item(
-        "create_memory",
-        intent.taskTitle ?? "Save memory",
-        intent.intentType === "price_log" ? "Save this approved price and its place." : "Save this as user-approved memory.",
-        "low",
-        { intent, operation: intent.intentType === "price_log" ? "price_log" : "memory" },
-        true
-      );
-      return [this.gate(item, settings.memoryEnabled === false ? "memoryEnabled" : intent.intentType === "price_log" && settings.priceMemoryEnabled === false ? "priceMemoryEnabled" : undefined)];
-    }
-    if (intent.intentType === "action_prompt" || intent.actionCandidate) {
-      const actionType = String(intent.actionCandidate?.actionType ?? intent.actionType ?? "GENERATE_CHECKLIST").toUpperCase();
-      const gate = this.actionGate(actionType, settings);
-      return [
-        this.gate(
-          this.item(
-            "create_action_prompt",
-            intent.taskTitle ?? "Prepare action",
-            this.actionDescription(actionType),
-            this.isSensitiveAction(actionType) ? "sensitive" : "medium",
-            { intent, actionType, ...(intent.actionCandidate?.payload ?? {}), executionAllowed: false },
-            true,
-            this.isSensitiveAction(actionType)
-          ),
-          gate
-        )
-      ];
-    }
-    if (["weather_trigger", "exchange_rate_trigger", "travel_plan"].includes(intent.intentType) || ["weather", "exchange_rate", "travel"].includes(String(intent.triggerType))) {
-      const gate =
-        intent.triggerType === "weather"
-          ? settings.weatherTriggersEnabled === false
-            ? "weatherTriggersEnabled"
-            : undefined
-          : intent.triggerType === "exchange_rate" && settings.exchangeRateTriggersEnabled === false
-            ? "exchangeRateTriggersEnabled"
-            : intent.triggerType === "travel" && settings.travelContextEnabled === false
-              ? "travelContextEnabled"
-              : undefined;
-      return [
-        this.gate(
-          this.item(
-            "create_live_context_trigger",
-            intent.taskTitle ?? "Create live alert",
-            this.triggerDescription(intent),
-            "low",
-            { intent, triggerType: intent.triggerType },
-            true
-          ),
-          gate
-        )
-      ];
-    }
-    if (intent.intentType === "habit" || intent.intentType === "reminder") {
-      const isLocation = String(intent.triggerType).startsWith("location_");
-      return [
-        this.gate(
-          this.item(
-            "create_trigger",
-            intent.taskTitle ?? "Create reminder",
-            this.triggerDescription(intent),
-            isLocation ? "medium" : "low",
-            { intent, triggerType: intent.triggerType },
-            true,
-            isLocation
-          ),
-          isLocation && settings.locationTriggersEnabled === false ? "locationTriggersEnabled" : undefined
-        )
-      ];
-    }
-    return [this.item("ask_clarification", "Confirm your intent", "Should this be a reminder, memory, or action?", "low", { intent }, false)];
-  }
-
-  private item(
-    type: AgentPlanItem["type"],
-    title: string,
-    description: string,
-    riskLevel: AgentPlanItem["riskLevel"],
-    payload: Record<string, unknown>,
-    requiresConfirmation: boolean,
-    sensitive = false
-  ): AgentPlanItem {
-    return {
-      id: randomUUID(),
-      type,
-      title,
-      description,
-      riskLevel,
-      status: "proposed",
-      payload,
-      requiresConfirmation,
-      sensitive
-    };
-  }
-
   private gate(item: AgentPlanItem, blockedBy?: string) {
     if (!blockedBy) return item;
     item.payload = { ...item.payload, blockedBy };
@@ -362,7 +262,7 @@ export class AgentOrchestratorService {
   }
 
   private async callTool(userId: string, item: AgentPlanItem): Promise<Record<string, unknown>> {
-    const intent = (item.payload.intent ?? {}) as ParsedIntent;
+    const intent = this.intentFromItem(item);
     if (item.type === "create_trigger") return this.createTrigger(userId, intent);
     if (item.type === "create_live_context_trigger") return this.createLiveContextTrigger(userId, intent);
     if (item.type === "create_memory") return this.createMemory(userId, intent, String(item.payload.operation ?? "memory"));
@@ -482,6 +382,11 @@ export class AgentOrchestratorService {
   }
 
   private resolveTimeCandidate(candidate?: Record<string, unknown>) {
+    const explicit = candidate?.dateTime ?? candidate?.iso ?? candidate?.value;
+    if (typeof explicit === "string") {
+      const parsed = new Date(explicit);
+      if (!Number.isNaN(parsed.getTime())) return parsed.toISOString();
+    }
     const phrase = String(candidate?.phrase ?? "in one hour").toLowerCase();
     const now = new Date();
     const lagosNow = new Date(now.getTime() + 60 * 60 * 1000);
@@ -507,22 +412,6 @@ export class AgentOrchestratorService {
     return new Date(date.getTime() - 60 * 60 * 1000).toISOString();
   }
 
-  private triggerDescription(intent: ParsedIntent) {
-    if (intent.triggerType === "location_arrival") return `When you arrive at ${String(intent.locationCandidate?.placeName ?? intent.place ?? "the selected place")}.`;
-    if (intent.triggerType === "location_departure") return `When you leave ${String(intent.locationCandidate?.placeName ?? intent.place ?? "the selected place")}.`;
-    if (intent.triggerType === "weather") return `Check ${intent.destination ?? String(intent.locationCandidate?.placeName ?? "destination")} weather before the plan.`;
-    if (intent.triggerType === "exchange_rate") return `Alert when ${intent.baseCurrency ?? "USD"}/${intent.quoteCurrency ?? "NGN"} reaches ${intent.targetRate ?? "the target"}.`;
-    if (intent.triggerType === "habit") return `Repeat ${intent.frequency ?? String(intent.habitCandidate?.frequency ?? "regularly")}.`;
-    return `Remind you ${String(intent.timeCandidate?.phrase ?? "at the selected time")}.`;
-  }
-
-  private actionDescription(actionType: string) {
-    if (actionType.includes("PAYMENT")) return "Prepare a payment reminder only. Triggerly will never move money automatically.";
-    if (actionType === "DRAFT_EMAIL") return "Prepare an email draft. Triggerly will not send it.";
-    if (actionType === "DRAFT_MESSAGE") return "Prepare a message draft. Triggerly will not send it.";
-    return "Prepare this action for your review. External execution remains locked.";
-  }
-
   private actionGate(actionType: string, settings: Record<string, boolean | string | number | Date | null>) {
     if (actionType === "DRAFT_EMAIL" && settings.emailDraftingEnabled === false) return "emailDraftingEnabled";
     if (actionType === "DRAFT_MESSAGE" && settings.messageDraftingEnabled === false) return "messageDraftingEnabled";
@@ -535,38 +424,6 @@ export class AgentOrchestratorService {
 
   private isSensitiveAction(actionType: string) {
     return ["DRAFT_EMAIL", "DRAFT_MESSAGE", "OPEN_PAYMENT_APP", "PAYMENT_REMINDER", "CALL_CONTACT", "CREATE_CALENDAR_EVENT"].includes(actionType);
-  }
-
-  private featureDisabledPlan(description: string, blockedBy: string): AgentPlan {
-    return {
-      id: randomUUID(),
-      summary: description,
-      requiresConfirmation: false,
-      items: [this.item("ask_clarification", "Enable AI parsing", description, "low", { blockedBy }, false)]
-    };
-  }
-
-  private splitMessage(input: string) {
-    const sentences = input
-      .trim()
-      .split(/(?<=[.!?])\s+/)
-      .map((part) => part.trim())
-      .filter(Boolean);
-    const merged: string[] = [];
-    for (const sentence of sentences) {
-      const previous = merged[merged.length - 1];
-      if (previous && /\b(traveling|travelling|going)\s+to\b/i.test(previous) && /\bweather\b/i.test(sentence)) {
-        merged[merged.length - 1] = `${previous} ${sentence}`;
-      } else {
-        merged.push(sentence);
-      }
-    }
-    return merged.flatMap((part) =>
-      part
-        .split(/\s+and\s+(?=(?:remind|tell|draft|save|create|check|when)\b)/i)
-        .map((clause) => clause.trim())
-        .filter(Boolean)
-    );
   }
 
   private toolName(item: AgentPlanItem) {
@@ -604,5 +461,185 @@ export class AgentOrchestratorService {
     const run = await this.prisma.agentRun.findFirst({ where: { id, userId } });
     if (!run) throw new NotFoundException("Agent run not found.");
     return run;
+  }
+
+  private applyPrivacyGates(
+    plan: AgentPlan,
+    settings: Record<string, boolean | string | number | Date | null>
+  ): AgentPlan {
+    return {
+      ...plan,
+      requiresConfirmation: plan.items.some((item) => this.isActionablePlanItem(item)),
+      items: plan.items.map((item) => {
+        const intent = this.intentFromItem(item);
+        const triggerType = String(item.payload.triggerType ?? intent.triggerType ?? "").toLowerCase();
+        const actionType = String(
+          item.payload.actionType ?? intent.actionCandidate?.actionType ?? intent.actionType ?? ""
+        ).toUpperCase();
+        const memoryType = String(
+          item.payload.memoryType ?? intent.memoryCandidate?.type ?? intent.intentType ?? ""
+        ).toLowerCase();
+        let blockedBy: string | undefined;
+
+        if (item.type === "create_trigger" && triggerType.startsWith("location_")) {
+          blockedBy = settings.locationTriggersEnabled === false ? "locationTriggersEnabled" : undefined;
+        } else if (item.type === "create_live_context_trigger") {
+          if (triggerType === "weather") {
+            blockedBy = settings.weatherTriggersEnabled === false ? "weatherTriggersEnabled" : undefined;
+          } else if (triggerType === "exchange_rate") {
+            blockedBy =
+              settings.exchangeRateTriggersEnabled === false
+                ? "exchangeRateTriggersEnabled"
+                : undefined;
+          } else if (triggerType === "travel") {
+            blockedBy = settings.travelContextEnabled === false ? "travelContextEnabled" : undefined;
+          }
+        } else if (item.type === "create_memory") {
+          blockedBy = settings.memoryEnabled === false ? "memoryEnabled" : undefined;
+          if (!blockedBy && (memoryType === "price" || item.payload.operation === "price_log")) {
+            blockedBy = settings.priceMemoryEnabled === false ? "priceMemoryEnabled" : undefined;
+          }
+        } else if (item.type === "create_action_prompt") {
+          blockedBy = this.actionGate(actionType, settings);
+        }
+
+        const sensitive =
+          item.sensitive ||
+          item.riskLevel === "sensitive" ||
+          triggerType.startsWith("location_") ||
+          this.isSensitiveAction(actionType);
+        const next = {
+          ...item,
+          riskLevel: sensitive && item.riskLevel === "low" ? ("medium" as const) : item.riskLevel,
+          sensitive,
+          requiresConfirmation: this.isActionablePlanItem(item) ? true : item.requiresConfirmation,
+          payload:
+            item.type === "create_action_prompt"
+              ? { ...item.payload, actionType, executionAllowed: false }
+              : { ...item.payload }
+        };
+        return this.gate(next, blockedBy);
+      })
+    };
+  }
+
+  private intentFromItem(item: AgentPlanItem): ParsedIntent {
+    if (item.payload.intent && typeof item.payload.intent === "object") {
+      return item.payload.intent as ParsedIntent;
+    }
+
+    const triggerType = String(item.payload.triggerType ?? "").toLowerCase() as ParsedIntent["triggerType"];
+    const actionType = String(item.payload.actionType ?? "").toUpperCase();
+    const time = item.payload.time;
+    const location = item.payload.location;
+    const habit = item.payload.habit;
+    const memoryType = String(item.payload.memoryType ?? "general").toLowerCase();
+
+    return {
+      intentType:
+        item.type === "create_action_prompt"
+          ? "action_prompt"
+          : item.type === "create_memory"
+            ? memoryType === "debt"
+              ? "debt_memory"
+              : memoryType === "promise"
+                ? "promise_memory"
+                : item.payload.operation === "price_log"
+                  ? "price_log"
+                  : "memory"
+            : item.type === "create_live_context_trigger"
+              ? triggerType === "exchange_rate"
+                ? "exchange_rate_trigger"
+                : triggerType === "weather"
+                  ? "weather_trigger"
+                  : "travel_plan"
+              : triggerType === "habit"
+                ? "habit"
+                : "reminder",
+      triggerType,
+      taskTitle: String(item.payload.taskTitle ?? item.title),
+      timeCandidate:
+        time && typeof time === "object"
+          ? (time as Record<string, unknown>)
+          : typeof time === "string"
+            ? { phrase: time }
+            : undefined,
+      locationCandidate:
+        location && typeof location === "object"
+          ? (location as Record<string, unknown>)
+          : typeof location === "string"
+            ? { placeName: location }
+            : undefined,
+      habitCandidate:
+        habit && typeof habit === "object"
+          ? (habit as Record<string, unknown>)
+          : typeof habit === "string"
+            ? { frequency: habit }
+            : undefined,
+      memoryCandidate: item.type === "create_memory" ? { ...item.payload, type: memoryType } : undefined,
+      actionCandidate:
+        item.type === "create_action_prompt"
+          ? {
+              actionType: this.toActionType(actionType),
+              payload: { ...item.payload, executionAllowed: false }
+            }
+          : undefined,
+      actionType: actionType.toLowerCase(),
+      destination: this.stringValue(item.payload.destination ?? item.payload.location),
+      baseCurrency: this.stringValue(item.payload.baseCurrency ?? item.payload.base),
+      quoteCurrency: this.stringValue(item.payload.quoteCurrency ?? item.payload.quote),
+      targetRate: this.numberValue(item.payload.targetRate),
+      condition: this.stringValue(item.payload.condition ?? item.payload.operator),
+      item: this.stringValue(item.payload.item ?? item.payload.itemName),
+      price: this.numberValue(item.payload.price),
+      currency: this.stringValue(item.payload.currency),
+      place: this.stringValue(item.payload.place ?? item.payload.placeName),
+      person: this.stringValue(item.payload.person ?? item.payload.recipient),
+      amount: this.numberValue(item.payload.amount),
+      direction: item.payload.direction === "payable" ? "payable" : "receivable",
+      frequency: this.stringValue(item.payload.frequency),
+      suggestedVoiceScript: this.stringValue(item.payload.suggestedVoiceScript),
+      confidence: this.numberValue(item.payload.confidence) ?? 0.8,
+      requiresConfirmation: true,
+      sensitive: item.sensitive,
+      executionAllowed: false
+    };
+  }
+
+  private toActionType(value: string): ActionType {
+    return Object.values(ActionType).includes(value as ActionType)
+      ? (value as ActionType)
+      : ActionType.GENERATE_CHECKLIST;
+  }
+
+  private isActionablePlanItem(item: AgentPlanItem) {
+    return !["ask_clarification", "answer_only"].includes(item.type);
+  }
+
+  private settingLabel(setting: string) {
+    const labels: Record<string, string> = {
+      locationTriggersEnabled: "Location triggers",
+      weatherTriggersEnabled: "Weather triggers",
+      exchangeRateTriggersEnabled: "Exchange-rate triggers",
+      travelContextEnabled: "Travel context",
+      memoryEnabled: "Memory",
+      priceMemoryEnabled: "Price memory",
+      emailDraftingEnabled: "Email drafting",
+      messageDraftingEnabled: "Message drafting",
+      paymentRemindersEnabled: "Payment reminders",
+      paymentActionsEnabled: "Payment actions",
+      contactAccessEnabled: "Contact access",
+      calendarIntegrationEnabled: "Calendar integration"
+    };
+    return labels[setting] ?? "This feature";
+  }
+
+  private stringValue(value: unknown) {
+    return typeof value === "string" && value.trim() ? value.trim() : undefined;
+  }
+
+  private numberValue(value: unknown) {
+    const number = typeof value === "number" ? value : typeof value === "string" ? Number(value) : NaN;
+    return Number.isFinite(number) ? number : undefined;
   }
 }

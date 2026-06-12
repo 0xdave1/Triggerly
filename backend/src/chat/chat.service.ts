@@ -41,6 +41,7 @@ export class ChatService {
     });
 
     return {
+      conversationId: conversation.id,
       conversation: { id: conversation.id, title: conversation.title },
       userMessage,
       assistantMessage,

@@ -9,6 +9,10 @@ import {
   rejectAgentRun,
   sendChatMessage
 } from "./api";
+import { actionPromptKeys } from "@/features/action-prompts/hooks";
+import { liveContextKeys } from "@/features/live-context/hooks";
+import { memoryKeys } from "@/features/memory/hooks";
+import { reminderKeys } from "@/features/reminders/hooks";
 
 export const chatKeys = {
   all: ["chat"] as const,
@@ -34,6 +38,15 @@ export function useChatActions() {
     await queryClient.invalidateQueries({ queryKey: chatKeys.conversations });
     if (conversationId) await queryClient.invalidateQueries({ queryKey: chatKeys.conversation(conversationId) });
   };
+  const refreshCreatedRecords = async () => {
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: reminderKeys.all }),
+      queryClient.invalidateQueries({ queryKey: memoryKeys.all }),
+      queryClient.invalidateQueries({ queryKey: actionPromptKeys.all }),
+      queryClient.invalidateQueries({ queryKey: liveContextKeys.triggers }),
+      queryClient.invalidateQueries({ queryKey: liveContextKeys.priceLogs })
+    ]);
+  };
 
   return {
     send: useMutation({
@@ -41,11 +54,13 @@ export function useChatActions() {
       onSuccess: (response) => refresh(response.conversation.id)
     }),
     confirmRun: useMutation({
-      mutationFn: ({ runId, itemIds }: { runId: string; itemIds?: string[] }) => confirmAgentRun(runId, itemIds)
+      mutationFn: ({ runId, itemIds }: { runId: string; itemIds?: string[] }) => confirmAgentRun(runId, itemIds),
+      onSuccess: refreshCreatedRecords
     }),
     rejectRun: useMutation({ mutationFn: rejectAgentRun }),
     confirmItem: useMutation({
-      mutationFn: ({ runId, itemId }: { runId: string; itemId: string }) => confirmAgentPlanItem(runId, itemId)
+      mutationFn: ({ runId, itemId }: { runId: string; itemId: string }) => confirmAgentPlanItem(runId, itemId),
+      onSuccess: refreshCreatedRecords
     }),
     rejectItem: useMutation({
       mutationFn: ({ runId, itemId }: { runId: string; itemId: string }) => rejectAgentPlanItem(runId, itemId)

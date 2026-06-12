@@ -3,6 +3,8 @@ import { TerminalBadge } from "@/components/ui/TerminalBadge";
 import { TerminalButton } from "@/components/ui/TerminalButton";
 import type { AgentPlanItem } from "@/features/chat/types";
 import { colors, radii, spacing, typography } from "@/styles/theme";
+import { CreatedResultCard } from "./CreatedResultCard";
+import { SensitiveWarning } from "./SensitiveWarning";
 
 export function AgentPlanItemCard({
   item,
@@ -32,10 +34,13 @@ export function AgentPlanItemCard({
       </View>
       <Text style={styles.title}>{item.title}</Text>
       <Text style={styles.description}>{item.description}</Text>
-      {item.sensitive ? (
-        <Text style={styles.warning}>
-          Sensitive actions stay locked behind your approval. Triggerly never sends money, email, or messages automatically.
-        </Text>
+      {item.sensitive ? <SensitiveWarning /> : null}
+      {item.result ? (
+        <CreatedResultCard
+          blocked={item.result.status === "blocked_by_privacy"}
+          message={typeof item.result.message === "string" ? item.result.message : undefined}
+          title={item.result.status === "blocked_by_privacy" ? "Blocked by your privacy settings" : "Created"}
+        />
       ) : null}
       {item.error ? <Text style={styles.error}>{item.error}</Text> : null}
       {blockedBy ? (
@@ -84,12 +89,6 @@ const styles = StyleSheet.create({
   },
   description: {
     color: colors.textMuted,
-    fontFamily: typography.sans,
-    fontSize: typography.small,
-    lineHeight: 20
-  },
-  warning: {
-    color: colors.warning,
     fontFamily: typography.sans,
     fontSize: typography.small,
     lineHeight: 20

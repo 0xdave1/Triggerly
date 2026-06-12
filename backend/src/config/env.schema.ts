@@ -9,8 +9,12 @@ export const envSchema = z.object({
   CORS_ORIGINS: z.string().optional(),
   REDIS_URL: z.string().optional().default(""),
   ENABLE_SWAGGER: z.string().optional().default("false"),
-  AI_PROVIDER: z.string().optional().default("heuristic"),
+  AI_PROVIDER: z.enum(["heuristic", "freemodel", "openai"]).default("heuristic"),
+  AI_BASE_URL: z.string().url().default("https://api.freemodel.dev"),
   OPENAI_API_KEY: z.string().optional().default(""),
+  AI_MODEL: z.string().min(1).default("gpt-5.5"),
+  AI_REASONING_EFFORT: z.enum(["none", "minimal", "low", "medium", "high", "xhigh"]).default("xhigh"),
+  AI_DISABLE_RESPONSE_STORAGE: z.enum(["true", "false"]).default("true"),
   WEATHER_PROVIDER: z.string().optional().default(""),
   WEATHER_API_KEY: z.string().optional().default(""),
   EXCHANGE_RATE_PROVIDER: z.string().optional().default(""),
@@ -19,6 +23,14 @@ export const envSchema = z.object({
   PUSH_PROVIDER: z.string().optional().default("expo"),
   SENTRY_DSN: z.string().optional().default("")
 }).superRefine((env, ctx) => {
+  if (env.AI_PROVIDER === "freemodel" && !env.OPENAI_API_KEY.trim()) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["OPENAI_API_KEY"],
+      message: "OPENAI_API_KEY is required when AI_PROVIDER=freemodel."
+    });
+  }
+
   if (env.NODE_ENV === "production") {
     if (!env.CORS_ORIGINS?.trim()) {
       ctx.addIssue({

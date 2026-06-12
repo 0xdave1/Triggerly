@@ -16,7 +16,17 @@ services:
       - key: ENABLE_SWAGGER
         value: false
       - key: AI_PROVIDER
-        value: heuristic
+        value: freemodel
+      - key: AI_BASE_URL
+        value: https://api.freemodel.dev
+      - key: AI_MODEL
+        value: gpt-5.5
+      - key: AI_REASONING_EFFORT
+        value: xhigh
+      - key: AI_DISABLE_RESPONSE_STORAGE
+        value: true
+      - key: OPENAI_API_KEY
+        sync: false
       - key: DATABASE_URL
         sync: false
       - key: JWT_SECRET

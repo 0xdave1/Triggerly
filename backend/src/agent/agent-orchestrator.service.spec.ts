@@ -16,7 +16,7 @@ function makeService(overrides: Record<string, unknown> = {}) {
     chatMessage: { create: jest.fn().mockResolvedValue({}) },
     $transaction: jest.fn().mockImplementation(async (items) => Promise.all(items))
   };
-  const ai = { parseUserMessage: jest.fn() };
+  const ai = { createAgentPlan: jest.fn() };
   const privacy = {
     getSettings: jest.fn().mockResolvedValue({
       aiParsingEnabled: true,
@@ -44,7 +44,18 @@ function makeService(overrides: Record<string, unknown> = {}) {
   };
   const actions = { create: jest.fn().mockResolvedValue({ id: "action1", status: "PENDING_CONFIRMATION" }) };
   const voice = { generateForIntent: jest.fn().mockReturnValue("Briefing ready.") };
-  const mocks = { prisma, ai, privacy, reminders, triggers, memory, liveContext, actions, voice, ...overrides };
+  const mocks = {
+    prisma,
+    ai,
+    privacy,
+    reminders,
+    triggers,
+    memory,
+    liveContext,
+    actions,
+    voice,
+    ...overrides
+  };
   return {
     service: new AgentOrchestratorService(
       mocks.prisma as any,
@@ -64,14 +75,26 @@ function makeService(overrides: Record<string, unknown> = {}) {
 describe("AgentOrchestratorService", () => {
   it("builds a location plan without creating a trigger before confirmation", async () => {
     const { service, mocks } = makeService();
-    mocks.ai.parseUserMessage.mockResolvedValue({
-      intentType: "reminder",
-      triggerType: "location_arrival",
-      taskTitle: "Buy fuel",
-      locationCandidate: { placeName: "Total" },
-      suggestedDeliveryMode: DeliveryMode.PUSH,
-      confidence: 0.93,
-      requiresConfirmation: true
+    mocks.ai.createAgentPlan.mockResolvedValue({
+      id: "p1",
+      summary: "One location reminder",
+      requiresConfirmation: true,
+      items: [{
+        id: "i1",
+        type: "create_trigger",
+        title: "Buy fuel",
+        description: "When you arrive at Total",
+        riskLevel: "medium",
+        status: "proposed",
+        payload: {
+          triggerType: "location_arrival",
+          taskTitle: "Buy fuel",
+          location: { placeName: "Total" },
+          deliveryMode: DeliveryMode.PUSH
+        },
+        requiresConfirmation: true,
+        sensitive: true
+      }]
     });
 
     const run = await service.createRun("u1", "c1", "Remind me to buy fuel when I get to Total.");
@@ -91,13 +114,21 @@ describe("AgentOrchestratorService", () => {
       aiParsingEnabled: true,
       locationTriggersEnabled: false
     });
-    mocks.ai.parseUserMessage.mockResolvedValue({
-      intentType: "reminder",
-      triggerType: "location_arrival",
-      taskTitle: "Buy fuel",
-      locationCandidate: { placeName: "Total" },
-      confidence: 0.9,
-      requiresConfirmation: true
+    mocks.ai.createAgentPlan.mockResolvedValue({
+      id: "p1",
+      summary: "One location reminder",
+      requiresConfirmation: true,
+      items: [{
+        id: "i1",
+        type: "create_trigger",
+        title: "Buy fuel",
+        description: "When you arrive at Total",
+        riskLevel: "medium",
+        status: "proposed",
+        payload: { triggerType: "location_arrival", location: "Total" },
+        requiresConfirmation: true,
+        sensitive: true
+      }]
     });
 
     const run = await service.createRun("u1", "c1", "Buy fuel at Total");
@@ -175,17 +206,27 @@ describe("AgentOrchestratorService", () => {
 
   it("payment requests only create a pending action prompt", async () => {
     const { service, mocks } = makeService();
-    mocks.ai.parseUserMessage.mockResolvedValue({
-      intentType: "action_prompt",
-      taskTitle: "Payment reminder for David",
-      actionCandidate: {
-        actionType: ActionType.PAYMENT_REMINDER,
-        payload: { recipientName: "David", amount: 20000, currency: "NGN", executionAllowed: false }
-      },
-      confidence: 0.9,
+    mocks.ai.createAgentPlan.mockResolvedValue({
+      id: "p1",
+      summary: "One payment reminder",
       requiresConfirmation: true,
-      sensitive: true,
-      executionAllowed: false
+      items: [{
+        id: "i1",
+        type: "create_action_prompt",
+        title: "Payment reminder for David",
+        description: "Prepare a payment reminder only.",
+        riskLevel: "sensitive",
+        status: "proposed",
+        payload: {
+          actionType: ActionType.PAYMENT_REMINDER,
+          recipientName: "David",
+          amount: 20000,
+          currency: "NGN",
+          executionAllowed: false
+        },
+        requiresConfirmation: true,
+        sensitive: true
+      }]
     });
     const created = await service.createRun("u1", "c1", "Send 20,000 to David tomorrow");
     mocks.prisma.agentRun.findFirst.mockResolvedValue({
@@ -209,5 +250,44 @@ describe("AgentOrchestratorService", () => {
       "u1",
       expect.objectContaining({ type: TriggerType.TIME })
     );
+  });
+
+  it("returns a privacy-blocked result without executing the tool", async () => {
+    const { service, mocks } = makeService();
+    const plan = {
+      id: "p1",
+      summary: "Weather alert",
+      requiresConfirmation: true,
+      items: [
+        {
+          id: "i1",
+          type: "create_live_context_trigger",
+          title: "Abuja rain alert",
+          description: "Check for rain.",
+          riskLevel: "low",
+          status: "proposed",
+          payload: { triggerType: "weather", blockedBy: "weatherTriggersEnabled" },
+          requiresConfirmation: true,
+          sensitive: false
+        }
+      ]
+    };
+    mocks.prisma.agentRun.findFirst.mockResolvedValue({
+      id: "run1",
+      userId: "u1",
+      conversationId: "c1",
+      plan
+    });
+
+    const result = await service.confirmRun("u1", "run1");
+
+    expect(result.plan.items[0].result).toEqual(
+      expect.objectContaining({
+        status: "blocked_by_privacy",
+        setting: "weatherTriggersEnabled"
+      })
+    );
+    expect(mocks.liveContext.createWeatherTrigger).not.toHaveBeenCalled();
+    expect(mocks.prisma.toolExecution.create).not.toHaveBeenCalled();
   });
 });

@@ -12,6 +12,14 @@ export default () => ({
   redisUrl: process.env.REDIS_URL,
   enableSwagger: process.env.ENABLE_SWAGGER === "true",
   aiProvider: process.env.AI_PROVIDER ?? "heuristic",
+  ai: {
+    provider: process.env.AI_PROVIDER ?? "heuristic",
+    baseUrl: process.env.AI_BASE_URL ?? "https://api.freemodel.dev",
+    apiKey: process.env.OPENAI_API_KEY ?? "",
+    model: process.env.AI_MODEL ?? "gpt-5.5",
+    reasoningEffort: process.env.AI_REASONING_EFFORT ?? "xhigh",
+    disableResponseStorage: process.env.AI_DISABLE_RESPONSE_STORAGE !== "false"
+  },
   weatherProvider: process.env.WEATHER_PROVIDER ?? "",
   weatherApiKey: process.env.WEATHER_API_KEY ?? "",
   exchangeRateProvider: process.env.EXCHANGE_RATE_PROVIDER ?? "",
