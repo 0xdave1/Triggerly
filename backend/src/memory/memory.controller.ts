@@ -14,6 +14,11 @@ export class MemoryController {
     return this.memory.list(user.id, dto);
   }
 
+  @Get("timeline")
+  timeline(@CurrentUser() user: AuthUser) {
+    return this.memory.timeline(user.id);
+  }
+
   @Post()
   create(@CurrentUser() user: AuthUser, @Body() dto: CreateMemoryItemDto) {
     return this.memory.create(user.id, dto);

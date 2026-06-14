@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { useLocalSearchParams } from "expo-router";
 import { StyleSheet, Text, View } from "react-native";
-import { MemoryCard } from "@/components/reminders/MemoryCard";
+import { DebtFavourCard, PriceMemoryCard, PromiseCard } from "@/components/assistant/LedgerCards";
+import { MemoryTimelineCard } from "@/components/assistant/MemoryTimelineCard";
 import { Select } from "@/components/ui/Select";
 import { TerminalButton } from "@/components/ui/TerminalButton";
 import { TerminalCard } from "@/components/ui/TerminalCard";
@@ -11,9 +12,10 @@ import { TerminalScreen } from "@/components/ui/TerminalScreen";
 import { useMemoryActions, useMemoryItems } from "@/features/memory/hooks";
 import type { MemoryItem, MemoryType } from "@/features/memory/types";
 import { colors, spacing, typography } from "@/styles/theme";
+import { useAssistantActions, useDebts, usePrices, usePromises } from "@/features/assistant/hooks";
 
-const memoryTypes: MemoryType[] = ["person", "place", "price", "promise", "debt", "travel", "routine", "preference", "document", "general"];
-const filterTypes: Array<MemoryType | "all"> = ["all", "person", "place", "debt", "promise", "price", "routine", "travel"];
+const memoryTypes: MemoryType[] = ["person", "place", "price", "promise", "debt", "favour", "travel", "routine", "preference", "document", "general"];
+const filterTypes: Array<MemoryType | "all"> = ["all", "person", "place", "debt", "favour", "promise", "price", "routine", "travel"];
 
 export default function MemoryScreen() {
   const params = useLocalSearchParams<{ type?: MemoryType; title?: string; body?: string }>();
@@ -25,6 +27,10 @@ export default function MemoryScreen() {
   const [editingId, setEditingId] = useState<string>();
   const memory = useMemoryItems({ status: "active" });
   const actions = useMemoryActions();
+  const promises = usePromises();
+  const debts = useDebts();
+  const prices = usePrices();
+  const assistantActions = useAssistantActions();
 
   useEffect(() => {
     if (params.type && memoryTypes.includes(params.type)) setType(params.type);
@@ -94,11 +100,11 @@ export default function MemoryScreen() {
         ))}
       </View>
 
-      <TerminalCard title={filter === "all" ? "Your memory" : `${filter} memories`}>
+      <TerminalCard title={filter === "all" ? "Memory timeline" : `${filter} memories`}>
         {memory.isPending ? <Text style={styles.empty}>Loading memory...</Text> : null}
         {filtered.map((item) => (
           <View key={item.id} style={styles.item}>
-            <MemoryCard item={item} />
+            <MemoryTimelineCard item={item} />
             <View style={styles.actions}>
               <TerminalButton variant="secondary" onPress={() => editMemory(item)}>
                 Edit
@@ -113,6 +119,21 @@ export default function MemoryScreen() {
           </View>
         ))}
         {!filtered.length && !memory.isPending ? <Text style={styles.empty}>No memories found.</Text> : null}
+      </TerminalCard>
+
+      <TerminalCard title="Promise tracker">
+        {(promises.data ?? []).map((item) => <PromiseCard key={item.id} item={item} onComplete={() => assistantActions.completePromise.mutate(item.id)} />)}
+        {!promises.data?.length ? <Text style={styles.empty}>No promises tracked yet.</Text> : null}
+      </TerminalCard>
+
+      <TerminalCard title="Debts and favours">
+        {(debts.data ?? []).map((item) => <DebtFavourCard key={item.id} item={item} onSettle={() => assistantActions.settleDebt.mutate(item.id)} />)}
+        {!debts.data?.length ? <Text style={styles.empty}>No unsettled debt or favour records.</Text> : null}
+      </TerminalCard>
+
+      <TerminalCard title="Market price memory">
+        {(prices.data ?? []).slice(0, 8).map((item) => <PriceMemoryCard key={item.id} item={item} />)}
+        {!prices.data?.length ? <Text style={styles.empty}>Enable price memory, then confirm a price in chat to start comparing.</Text> : null}
       </TerminalCard>
     </TerminalScreen>
   );

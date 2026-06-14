@@ -22,6 +22,15 @@ import { MemoryModule } from "./memory/memory.module";
 import { LiveContextModule } from "./live-context/live-context.module";
 import { AgentModule } from "./agent/agent.module";
 import { ChatModule } from "./chat/chat.module";
+import { BriefingsModule } from "./briefings/briefings.module";
+import { PromisesModule } from "./promises/promises.module";
+import { DebtsModule } from "./debts/debts.module";
+import { PricesModule } from "./prices/prices.module";
+import { TravelModule } from "./travel/travel.module";
+import { AccountabilityModule } from "./accountability/accountability.module";
+import { FollowUpModule } from "./follow-up/follow-up.module";
+import { WidgetsModule } from "./widgets/widgets.module";
+import { ShareCaptureModule } from "./share-capture/share-capture.module";
 
 @Module({
   imports: [
@@ -49,6 +58,15 @@ import { ChatModule } from "./chat/chat.module";
     LiveContextModule,
     AgentModule,
     ChatModule,
+    BriefingsModule,
+    PromisesModule,
+    DebtsModule,
+    PricesModule,
+    TravelModule,
+    AccountabilityModule,
+    FollowUpModule,
+    WidgetsModule,
+    ShareCaptureModule,
     HealthModule
   ]
 })

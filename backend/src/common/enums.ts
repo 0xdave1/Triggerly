@@ -101,6 +101,7 @@ export enum MemoryType {
   PLACE = "PLACE",
   PRICE = "PRICE",
   DEBT = "DEBT",
+  FAVOUR = "FAVOUR",
   PROMISE = "PROMISE",
   PREFERENCE = "PREFERENCE",
   TRAVEL = "TRAVEL",
@@ -112,7 +113,9 @@ export enum MemoryType {
 export enum MemorySource {
   MANUAL = "MANUAL",
   AI_EXTRACTED = "AI_EXTRACTED",
-  IMPORTED = "IMPORTED"
+  IMPORTED = "IMPORTED",
+  SHARE_EXTENSION = "SHARE_EXTENSION",
+  SYSTEM_SUGGESTED = "SYSTEM_SUGGESTED"
 }
 
 export enum MemoryStatus {
@@ -146,7 +149,100 @@ export enum LiveContextTriggerStatus {
 export enum PriceLogSource {
   MANUAL = "MANUAL",
   OCR = "OCR",
-  AI_PARSE = "AI_PARSE"
+  AI_PARSE = "AI_PARSE",
+  AI_CHAT = "AI_CHAT",
+  SHARE_EXTENSION = "SHARE_EXTENSION"
+}
+
+export enum BriefingType {
+  MORNING = "MORNING",
+  EVENING = "EVENING",
+  TRAVEL = "TRAVEL",
+  CUSTOM = "CUSTOM"
+}
+
+export enum PromiseStatus {
+  PENDING = "PENDING",
+  COMPLETED = "COMPLETED",
+  OVERDUE = "OVERDUE",
+  CANCELLED = "CANCELLED"
+}
+
+export enum DebtDirection {
+  OWED_TO_ME = "OWED_TO_ME",
+  I_OWE = "I_OWE"
+}
+
+export enum DebtStatus {
+  PENDING = "PENDING",
+  PAID = "PAID",
+  CANCELLED = "CANCELLED"
+}
+
+export enum TravelPlanStatus {
+  PLANNED = "PLANNED",
+  ACTIVE = "ACTIVE",
+  COMPLETED = "COMPLETED",
+  CANCELLED = "CANCELLED"
+}
+
+export enum AccountabilityStrictness {
+  GENTLE = "GENTLE",
+  BALANCED = "BALANCED",
+  STRICT = "STRICT"
+}
+
+export enum AccountabilityGoalStatus {
+  ACTIVE = "ACTIVE",
+  PAUSED = "PAUSED",
+  COMPLETED = "COMPLETED",
+  CANCELLED = "CANCELLED"
+}
+
+export enum AccountabilityCheckInStatus {
+  DONE = "DONE",
+  MISSED = "MISSED",
+  SNOOZED = "SNOOZED"
+}
+
+export enum FollowUpSourceType {
+  REMINDER = "REMINDER",
+  ACTION = "ACTION",
+  MEMORY = "MEMORY",
+  TRAVEL = "TRAVEL",
+  PRICE = "PRICE",
+  PROMISE = "PROMISE",
+  DEBT = "DEBT"
+}
+
+export enum FollowUpSuggestionStatus {
+  PENDING = "PENDING",
+  ACCEPTED = "ACCEPTED",
+  DISMISSED = "DISMISSED",
+  EXPIRED = "EXPIRED"
+}
+
+export enum ShareCaptureContentType {
+  TEXT = "TEXT",
+  IMAGE = "IMAGE",
+  URL = "URL",
+  FILE = "FILE"
+}
+
+export enum ShareCaptureStatus {
+  RECEIVED = "RECEIVED",
+  PARSED = "PARSED",
+  CONFIRMED = "CONFIRMED",
+  DISCARDED = "DISCARDED"
+}
+
+export enum VoicePersonalityStyle {
+  CALM = "CALM",
+  PROFESSIONAL = "PROFESSIONAL",
+  FRIENDLY_NIGERIAN = "FRIENDLY_NIGERIAN",
+  STRICT_COACH = "STRICT_COACH",
+  MINIMAL = "MINIMAL",
+  ENERGETIC = "ENERGETIC"
 }
 
 export enum ChatMessageRole {

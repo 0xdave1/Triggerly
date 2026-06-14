@@ -26,6 +26,13 @@ export class MemoryService {
     });
   }
 
+  timeline(userId: string) {
+    return this.prisma.memory.findMany({
+      where: { userId, status: { not: MemoryStatus.DELETED } },
+      orderBy: { createdAt: "desc" }
+    });
+  }
+
   async get(userId: string, id: string) {
     const item = await this.prisma.memory.findFirst({ where: { id, userId, status: { not: MemoryStatus.DELETED } } });
     if (!item) throw new NotFoundException("Memory item not found.");

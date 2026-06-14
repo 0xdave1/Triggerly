@@ -109,4 +109,44 @@ export class UpdatePrivacySettingsDto {
   @IsOptional()
   @IsBoolean()
   dataExportEnabled?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  briefingsEnabled?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  promiseTrackingEnabled?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  debtFavourMemoryEnabled?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  travelModeEnabled?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  smartSnoozeEnabled?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  voicePersonalityEnabled?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  accountabilityModeEnabled?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  followUpSuggestionsEnabled?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  widgetSummaryEnabled?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  shareCaptureEnabled?: boolean;
 }

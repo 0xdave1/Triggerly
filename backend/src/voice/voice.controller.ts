@@ -3,6 +3,7 @@ import { AuthUser, CurrentUser } from "@/common/decorators/current-user.decorato
 import { JwtAuthGuard } from "@/common/guards/jwt-auth.guard";
 import { GenerateScriptDto } from "./dto/generate-script.dto";
 import { UpdateVoiceSettingsDto } from "./dto/update-voice-settings.dto";
+import { UpdateVoicePersonalityDto } from "./dto/voice-personality.dto";
 import { VoiceScriptService } from "./voice-script.service";
 import { VoiceSettingsService } from "./voice-settings.service";
 
@@ -22,6 +23,16 @@ export class VoiceController {
   @Patch("settings")
   updateSettings(@CurrentUser() user: AuthUser, @Body() dto: UpdateVoiceSettingsDto) {
     return this.settings.update(user.id, dto);
+  }
+
+  @Get("personality")
+  getPersonality(@CurrentUser() user: AuthUser) {
+    return this.settings.getPersonality(user.id);
+  }
+
+  @Patch("personality")
+  updatePersonality(@CurrentUser() user: AuthUser, @Body() dto: UpdateVoicePersonalityDto) {
+    return this.settings.updatePersonality(user.id, dto);
   }
 
   @Post("generate-script")

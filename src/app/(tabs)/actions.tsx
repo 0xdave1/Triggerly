@@ -13,6 +13,11 @@ import type { ActionPrompt, ActionPromptType } from "@/features/action-prompts/t
 import { usePrivacySettings } from "@/features/privacy/hooks";
 import { isFeatureEnabled } from "@/features/privacy/types";
 import { colors, spacing, typography } from "@/styles/theme";
+import { FollowUpSuggestionCard } from "@/components/assistant/LedgerCards";
+import { ShareCaptureInput } from "@/components/assistant/ShareCaptureInput";
+import { SmartConfirmationCard } from "@/components/assistant/SmartConfirmationCard";
+import { useAssistantActions, useFollowUps } from "@/features/assistant/hooks";
+import type { AgentPlan } from "@/features/chat/types";
 
 const actionTypes: ActionPromptType[] = [
   "draft_email",
@@ -36,6 +41,12 @@ export default function ActionsScreen() {
   const prompts = useActionPrompts();
   const actions = useActionPromptActions();
   const privacy = usePrivacySettings();
+  const followUps = useFollowUps();
+  const assistantActions = useAssistantActions();
+  const [shareText, setShareText] = useState("");
+  const [shareCaptureId, setShareCaptureId] = useState<string>();
+  const [sharePlan, setSharePlan] = useState<AgentPlan>();
+  const [shareNotice, setShareNotice] = useState<string>();
   const disabledMessage = privacyGateMessage(actionType, privacy.data);
   const grouped = useMemo(() => {
     const data = prompts.data ?? [];
@@ -72,6 +83,21 @@ export default function ActionsScreen() {
     setPayloadText(String(prompt.payload?.topic ?? prompt.payload?.draft ?? prompt.payload?.recipientName ?? ""));
   };
 
+  const parseSharedText = async () => {
+    const capture = await assistantActions.createShare.mutateAsync(shareText);
+    const parsed = await assistantActions.parseShare.mutateAsync(capture.id);
+    setShareCaptureId(capture.id);
+    setSharePlan(parsed.plan);
+  };
+
+  const confirmSharedText = async () => {
+    if (!shareCaptureId) return;
+    const result = await assistantActions.confirmShare.mutateAsync(shareCaptureId);
+    setSharePlan(result.plan);
+    setShareNotice(result.result.message);
+    setShareText("");
+  };
+
   return (
     <TerminalScreen>
       <TerminalHeader title="Actions" subtitle="Prepare drafts and helpful next steps. You stay in control." status="approval required" />
@@ -93,6 +119,34 @@ export default function ActionsScreen() {
       <ActionSection title="Needs your approval" prompts={grouped.pending} actions={actions} onEdit={edit} />
       <ActionSection title="Confirmed" prompts={grouped.confirmed} actions={actions} onEdit={edit} />
       <ActionSection title="Completed" prompts={grouped.completed} actions={actions} onEdit={edit} />
+      <TerminalCard title="Suggested next actions">
+        {(followUps.data ?? []).map((item) => (
+          <FollowUpSuggestionCard
+            key={item.id}
+            item={item}
+            onAccept={() => assistantActions.acceptFollowUp.mutate(item.id)}
+            onDismiss={() => assistantActions.dismissFollowUp.mutate(item.id)}
+          />
+        ))}
+        {!followUps.data?.length ? <Text style={styles.note}>No follow-up suggestions waiting.</Text> : null}
+      </TerminalCard>
+
+      <TerminalCard title="Paste or share text">
+        <ShareCaptureInput value={shareText} busy={assistantActions.createShare.isPending || assistantActions.parseShare.isPending} onChange={setShareText} onParse={parseSharedText} />
+        {sharePlan ? (
+          <SmartConfirmationCard
+            plan={sharePlan}
+            busy={assistantActions.confirmShare.isPending}
+            onConfirmAll={confirmSharedText}
+            onRejectAll={() => setSharePlan(undefined)}
+            onConfirmItem={confirmSharedText}
+            onRejectItem={() => setSharePlan(undefined)}
+            onEditDetails={() => undefined}
+            onEnableFeature={() => undefined}
+          />
+        ) : null}
+        {shareNotice ? <Text style={styles.note}>{shareNotice}</Text> : null}
+      </TerminalCard>
       {!prompts.isPending && !(prompts.data ?? []).length ? <Text style={styles.note}>No prepared actions yet.</Text> : null}
       {prompts.isPending ? <Text style={styles.note}>Loading actions...</Text> : null}
     </TerminalScreen>

@@ -24,6 +24,18 @@ export type PrivacySettings = {
   analyticsEnabled: boolean;
   crashReportsEnabled: boolean;
   dataExportEnabled: boolean;
+  memoryEnabled: boolean;
+  contactMemoryEnabled: boolean;
+  briefingsEnabled: boolean;
+  promiseTrackingEnabled: boolean;
+  debtFavourMemoryEnabled: boolean;
+  travelModeEnabled: boolean;
+  smartSnoozeEnabled: boolean;
+  voicePersonalityEnabled: boolean;
+  accountabilityModeEnabled: boolean;
+  followUpSuggestionsEnabled: boolean;
+  widgetSummaryEnabled: boolean;
+  shareCaptureEnabled: boolean;
 };
 
 export type PrivacySettingKey = keyof PrivacySettings;
@@ -52,7 +64,19 @@ export const DEFAULT_PRIVACY_SETTINGS: PrivacySettings = {
   travelContextEnabled: false,
   analyticsEnabled: false,
   crashReportsEnabled: false,
-  dataExportEnabled: true
+  dataExportEnabled: true,
+  memoryEnabled: true,
+  contactMemoryEnabled: false,
+  briefingsEnabled: true,
+  promiseTrackingEnabled: true,
+  debtFavourMemoryEnabled: true,
+  travelModeEnabled: true,
+  smartSnoozeEnabled: true,
+  voicePersonalityEnabled: true,
+  accountabilityModeEnabled: true,
+  followUpSuggestionsEnabled: true,
+  widgetSummaryEnabled: true,
+  shareCaptureEnabled: true
 };
 
 export function isFeatureEnabled(settings: PrivacySettings | undefined, key: PrivacySettingKey): boolean {

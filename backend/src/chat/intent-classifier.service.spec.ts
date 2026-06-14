@@ -21,7 +21,10 @@ describe("IntentClassifierService", () => {
     "David owes me 8k.",
     "I bought rice for 6500 at Bodija.",
     "Notify me if it rains in Abuja.",
-    "When I leave home, remind me to take my charger."
+    "When I leave home, remind me to take my charger.",
+    "Help me stay consistent with coding every day.",
+    "I promised Tolu I'll send the file tomorrow.",
+    "Tolu helped me with transport."
   ])("classifies %s as a task plan", (message) => {
     expect(classifier.classify(message).mode).toBe("plan");
   });

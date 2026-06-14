@@ -1,5 +1,5 @@
 import { ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
-import { ActionPromptEventType, ActionPromptStatus, ActionType } from "@/common/enums";
+import { ActionPromptEventType, ActionPromptStatus, ActionType, FollowUpSourceType } from "@/common/enums";
 import { toNullablePrismaJson, toPrismaJson } from "@/common/utils/prisma-json";
 import { PrismaService } from "@/prisma/prisma.service";
 import { PrivacyService } from "@/privacy/privacy.service";
@@ -95,7 +95,22 @@ export class ActionPromptsService {
 
   async complete(userId: string, id: string) {
     const prompt = await this.findOwned(userId, id);
-    return this.transition(userId, prompt.id, ActionPromptStatus.COMPLETED, ActionPromptEventType.COMPLETED, { completedAt: new Date() });
+    const completed = await this.transition(userId, prompt.id, ActionPromptStatus.COMPLETED, ActionPromptEventType.COMPLETED, { completedAt: new Date() });
+    const settings = await this.privacy.getSettings(userId);
+    if (settings.followUpSuggestionsEnabled) {
+      await this.prisma.followUpSuggestion.create({
+        data: {
+          userId,
+          sourceType: FollowUpSourceType.ACTION,
+          sourceId: prompt.id,
+          title: `Follow up after ${prompt.title}`,
+          description: "Would you like a reminder to follow up in two days?",
+          suggestedActionType: "create_time_reminder",
+          payload: toPrismaJson({ triggerType: "time", taskTitle: `Follow up: ${prompt.title}`, time: "in 2 days" })
+        }
+      });
+    }
+    return completed;
   }
 
   async generateContent(userId: string, id: string, dto: GenerateActionPromptContentDto = {}) {

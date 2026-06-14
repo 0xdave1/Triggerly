@@ -8,7 +8,14 @@ describe("PrivacyService", () => {
       reminderEvent: { findMany: jest.fn().mockResolvedValue([{ id: "e1", userId: "u1" }]) },
       device: { findMany: jest.fn().mockResolvedValue([{ id: "d1", userId: "u1" }]) },
       userPrivacySetting: { findUnique: jest.fn().mockResolvedValue({ userId: "u1" }) },
-      memory: { findMany: jest.fn().mockResolvedValue([]) }
+      memory: { findMany: jest.fn().mockResolvedValue([]) },
+      promise: { findMany: jest.fn().mockResolvedValue([]) },
+      debt: { findMany: jest.fn().mockResolvedValue([]) },
+      travelPlan: { findMany: jest.fn().mockResolvedValue([]) },
+      accountabilityGoal: { findMany: jest.fn().mockResolvedValue([]) },
+      briefing: { findMany: jest.fn().mockResolvedValue([]) },
+      followUpSuggestion: { findMany: jest.fn().mockResolvedValue([]) },
+      shareCapture: { findMany: jest.fn().mockResolvedValue([]) }
     };
     const service = new PrivacyService(prisma as any);
 

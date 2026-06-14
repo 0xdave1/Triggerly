@@ -19,9 +19,15 @@ describe("ActionPromptsService", () => {
       },
       reminder: {
         findFirst: jest.fn().mockResolvedValue(reminder)
+      },
+      followUpSuggestion: {
+        create: jest.fn().mockResolvedValue({ id: "f1" })
       }
     };
-    const privacy = overrides?.privacy ?? { assertCanCreateActionPrompt: jest.fn().mockResolvedValue(undefined) };
+    const privacy = overrides?.privacy ?? {
+      assertCanCreateActionPrompt: jest.fn().mockResolvedValue(undefined),
+      getSettings: jest.fn().mockResolvedValue({ followUpSuggestionsEnabled: true })
+    };
     return { prisma, privacy, service: new ActionPromptsService(prisma as any, privacy as any) };
   }
 
@@ -84,5 +90,8 @@ describe("ActionPromptsService", () => {
 
     expect(prisma.actionPrompt.update.mock.calls[0][0].data.status).toBe(ActionPromptStatus.COMPLETED);
     expect(prisma.actionPrompt.update.mock.calls[0][0].data.completedAt).toBeInstanceOf(Date);
+    expect(prisma.followUpSuggestion.create).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ sourceId: "a1" }) })
+    );
   });
 });

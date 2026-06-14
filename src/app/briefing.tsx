@@ -1,35 +1,33 @@
-import { useMemo } from "react";
+import { Text } from "react-native";
+import { TerminalButton } from "@/components/ui/TerminalButton";
 import { TerminalCard } from "@/components/ui/TerminalCard";
 import { TerminalHeader } from "@/components/ui/TerminalHeader";
 import { TerminalScreen } from "@/components/ui/TerminalScreen";
 import { TerminalStatRow } from "@/components/ui/TerminalStatRow";
-import { useMemoryItems } from "@/features/memory/hooks";
-import { useReminders } from "@/features/reminders/hooks";
-import { getTodayReminders } from "@/features/reminders/utils";
+import { useAssistantActions, useDailyBriefing } from "@/features/assistant/hooks";
+import { colors, typography } from "@/styles/theme";
 
 export default function BriefingScreen() {
-  const reminders = useReminders();
-  const memory = useMemoryItems();
-  const allReminders = reminders.data ?? [];
-  const today = useMemo(() => getTodayReminders(allReminders), [allReminders]);
-  const completed = allReminders.filter((item) => item.status === "completed");
-  const habitsDue = allReminders.filter((item) => item.type === "habit" && item.status === "active");
+  const briefing = useDailyBriefing();
+  const actions = useAssistantActions();
+  const items = briefing.data?.items ?? {};
+  const count = (key: string) => Array.isArray(items[key]) ? items[key].length : 0;
 
   return (
     <TerminalScreen>
       <TerminalHeader title="Daily briefing" subtitle="A summary built only from data you confirmed." status="ready" />
-      <TerminalCard title="Morning">
-        <TerminalStatRow label="today_triggers" value={String(today.length)} />
-        <TerminalStatRow label="habits_due" value={String(habitsDue.length)} tone="cyan" />
-        <TerminalStatRow label="pending_actions" value="review actions screen" tone="amber" />
-        <TerminalStatRow label="weather_context" value="provider_not_configured" tone="muted" />
-        <TerminalStatRow label="important_memory" value={memory.data?.[0]?.title ?? "none"} tone="muted" />
+      <TerminalCard title={briefing.data?.title ?? "Morning"}>
+        <Text style={{ color: colors.text, fontFamily: typography.sans, lineHeight: 23 }}>{briefing.data?.summary ?? "Preparing your briefing..."}</Text>
+        <TerminalStatRow label="active triggers" value={String(count("reminders"))} />
+        <TerminalStatRow label="pending actions" value={String(count("actions"))} tone="amber" />
+        <TerminalStatRow label="promises" value={String(count("promises"))} tone="cyan" />
+        <TerminalStatRow label="debts and favours" value={String(count("debts"))} tone="muted" />
+        <TerminalStatRow label="accountability goals" value={String(count("accountabilityGoals"))} tone="cyan" />
+        <TerminalButton loading={actions.generateBriefing.isPending} onPress={() => actions.generateBriefing.mutate("MORNING")}>Refresh briefing</TerminalButton>
       </TerminalCard>
       <TerminalCard title="Evening" tone="amber">
-        <TerminalStatRow label="completed_triggers" value={String(completed.length)} />
-        <TerminalStatRow label="missed_or_postponed" value={String(allReminders.filter((item) => item.status === "snoozed").length)} tone="amber" />
-        <TerminalStatRow label="habits_not_done" value={String(habitsDue.length)} tone="cyan" />
-        <TerminalStatRow label="suggested_reschedule" value={habitsDue.length ? "review habit loops" : "none"} tone="muted" />
+        <Text style={{ color: colors.textMuted, fontFamily: typography.sans, lineHeight: 21 }}>Generate an evening review when you are ready to close the day.</Text>
+        <TerminalButton variant="secondary" loading={actions.generateBriefing.isPending} onPress={() => actions.generateBriefing.mutate("EVENING")}>Generate evening review</TerminalButton>
       </TerminalCard>
     </TerminalScreen>
   );

@@ -73,6 +73,10 @@ export class IntentClassifierService {
       /^[a-z][a-z .'-]+ owes me\b/,
       /\bi (bought|paid) .+\bfor\s+(?:₦|ngn\s*)?\d/i,
       /\bi promised\b/,
+      /\bi told\b.*\bi(?: would| will|['’]ll)\b/,
+      /\b(help me stay consistent|keep me accountable|accountability)\b/,
+      /\bhelped me with\b/,
+      /\bi need to return\b/,
       /^(call|email|message|text)\s+[a-z]/,
       /\b(send|transfer|pay)\s+(?:₦|ngn\s*)?\d/i
     ];

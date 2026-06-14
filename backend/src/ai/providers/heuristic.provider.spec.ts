@@ -13,6 +13,10 @@ describe("HeuristicAiProvider", () => {
     ["David owes me 8k.", "create_memory", undefined],
     ["Draft an email to Mr Ade about the proposal tomorrow morning.", "create_action_prompt", undefined],
     ["Every Sunday evening remind me to review my spending.", "create_trigger", "habit"],
+    ["Help me stay consistent with coding every day.", "create_trigger", "habit"],
+    ["I'm traveling to Abuja tomorrow.", "create_memory", undefined],
+    ["I promised Tolu I'll send the file tomorrow.", "create_memory", undefined],
+    ["Tolu helped me with transport.", "create_memory", undefined],
     ["Send 20000 to David tomorrow.", "create_action_prompt", undefined]
   ])("creates a safe plan for %s", async (message, type, triggerType) => {
     const plan = await provider.generateAgentPlan({ userId: "u1", message });

@@ -204,6 +204,46 @@ The backend remains organized around product capability modules:
 - Action engine: `action-prompts` prepares user-approved actions only. It does not send money, send email, scrape messages, or execute sensitive actions automatically.
 - Privacy engine: settings and privacy modules keep capability boundaries explicit.
 
+## Beyond MVP Assistant Features
+
+Triggerly now keeps the same five-tab navigation while adding a coordinated
+assistant layer:
+
+- Chat shows the daily briefing, normal answers, optional "Turn this into"
+  actions, smart confirmation cards, and follow-up suggestions.
+- Triggers includes smart snooze, travel mode, and accountability check-ins.
+- Memory includes a chronological timeline plus promise, debt/favour, and
+  market-price ledgers.
+- Actions includes pending suggestions and an in-app paste/share capture flow.
+- Control includes briefing preferences, voice personality, widget data
+  preferences, and capability privacy gates.
+
+All creation paths remain confirmation-first. Completing an action may create a
+follow-up suggestion, but it does not create the suggested reminder until the
+user accepts and confirms it.
+
+New backend endpoints include:
+
+- `GET /briefings/today`, `POST /briefings/generate`
+- `GET/PATCH /briefings/preferences`
+- `POST /agent/turn-this-into`
+- `GET /memory/timeline`
+- `/promises`, `/debts`, `/prices`, and `/travel-plans` user-owned workflows
+- `/accountability/goals` and goal check-ins
+- `/follow-up/suggestions`
+- `POST /triggers/:id/snooze-smart`
+- `GET/PATCH /voice/personality`
+- `GET /widgets/summary`, `GET/PATCH /widgets/preferences`
+- `/share-capture` create, parse, and confirm endpoints
+
+The Prisma migration `0010_beyond_mvp_foundation` adds briefing preferences,
+promises, debts, travel plans/checklists, accountability records, follow-up
+suggestions, share captures, widget preferences, and voice personality.
+
+Native iOS/Android home-screen widgets and OS share extensions are not included
+in the managed Expo build. Triggerly provides a widget preview/data contract and
+an in-app paste/share flow until EAS native extensions are implemented.
+
 Mobile assistant surfaces:
 
 - `/chat` is the default tab and main assistant experience.

@@ -65,4 +65,17 @@ describe("VoiceScriptService", () => {
 
     expect(result.script).toBe("Quick heads-up. You asked me to remind you to call david.");
   });
+
+  it("uses the selected voice personality for generated scripts", async () => {
+    const styledService = new VoiceScriptService({
+      userVoiceSetting: { upsert: jest.fn().mockResolvedValue({ selectedVoiceStyle: "calm" }) },
+      voicePersonality: { upsert: jest.fn().mockResolvedValue({ style: "STRICT_COACH" }) }
+    } as any);
+
+    const result = await styledService.generateVoiceScript("u1", {
+      intent: { taskTitle: "Practice coding", triggerType: "habit" }
+    });
+
+    expect(result.script).toContain("You marked this important. It's time to act.");
+  });
 });

@@ -204,6 +204,30 @@ The backend stores text settings/scripts only. It does not store raw audio or im
 - Voice delivery prepares scripts/settings only; actual TTS playback remains a mobile-platform concern.
 - Contact memory is explicitly user-created placeholder data; there is no automatic contacts ingestion.
 
+## Beyond MVP Modules
+
+Migration `0010_beyond_mvp_foundation` adds:
+
+- briefings and briefing preferences
+- promise and debt ledgers
+- travel plans and checklist items
+- accountability goals and check-ins
+- follow-up suggestions
+- share captures
+- widget data preferences
+- voice personality
+
+The associated NestJS modules enforce JWT ownership and privacy settings.
+`POST /agent/turn-this-into` creates a proposed `AgentRun`, not a record.
+Share capture parses pasted text into a plan first; its confirm endpoint then
+uses the existing agent confirmation pipeline.
+
+Widget endpoints return summary data for previews and future native extensions.
+They do not claim that an iOS WidgetKit or Android App Widget extension is
+installed. Share capture currently supports pasted text; native OS share
+extensions, file ingestion, image OCR, and receipt scanning remain future EAS
+native work.
+
 ## Production Next Steps
 
 - Add refresh tokens and token revocation.

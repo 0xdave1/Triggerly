@@ -71,7 +71,7 @@ export class PrivacyService {
   }
 
   async exportUserData(userId: string) {
-    const [user, reminders, events, devices, privacySetting, memories] = await Promise.all([
+    const [user, reminders, events, devices, privacySetting, memories, promises, debts, travelPlans, accountabilityGoals, briefings, followUps, shareCaptures] = await Promise.all([
       this.prisma.user.findUnique({
         where: { id: userId },
         select: { id: true, name: true, email: true, createdAt: true, updatedAt: true }
@@ -83,7 +83,14 @@ export class PrivacyService {
       this.prisma.reminderEvent.findMany({ where: { userId } }),
       this.prisma.device.findMany({ where: { userId } }),
       this.prisma.userPrivacySetting.findUnique({ where: { userId } }),
-      this.prisma.memory.findMany({ where: { userId } })
+      this.prisma.memory.findMany({ where: { userId } }),
+      this.prisma.promise.findMany({ where: { userId } }),
+      this.prisma.debt.findMany({ where: { userId } }),
+      this.prisma.travelPlan.findMany({ where: { userId }, include: { checklistItems: true } }),
+      this.prisma.accountabilityGoal.findMany({ where: { userId }, include: { checkIns: true } }),
+      this.prisma.briefing.findMany({ where: { userId } }),
+      this.prisma.followUpSuggestion.findMany({ where: { userId } }),
+      this.prisma.shareCapture.findMany({ where: { userId } })
     ]);
 
     return {
@@ -93,7 +100,14 @@ export class PrivacyService {
       events,
       devices,
       privacySetting,
-      memories
+      memories,
+      promises,
+      debts,
+      travelPlans,
+      accountabilityGoals,
+      briefings,
+      followUps,
+      shareCaptures
     };
   }
 

@@ -13,7 +13,7 @@ function makeService(overrides: Record<string, unknown> = {}) {
       create: jest.fn().mockResolvedValue({ id: "tool1" }),
       update: jest.fn().mockResolvedValue({})
     },
-    chatMessage: { create: jest.fn().mockResolvedValue({}) },
+    chatMessage: { create: jest.fn().mockResolvedValue({}), findFirst: jest.fn() },
     $transaction: jest.fn().mockImplementation(async (items) => Promise.all(items))
   };
   const ai = { generateAgentPlan: jest.fn() };
@@ -44,6 +44,11 @@ function makeService(overrides: Record<string, unknown> = {}) {
   };
   const actions = { create: jest.fn().mockResolvedValue({ id: "action1", status: "PENDING_CONFIRMATION" }) };
   const voice = { generateForIntent: jest.fn().mockReturnValue("Briefing ready.") };
+  const promises = { create: jest.fn().mockResolvedValue({ id: "promise1" }) };
+  const debts = { create: jest.fn().mockResolvedValue({ id: "debt1" }) };
+  const prices = { create: jest.fn().mockResolvedValue({ id: "price2" }) };
+  const travel = { create: jest.fn().mockResolvedValue({ id: "travel1" }) };
+  const accountability = { create: jest.fn().mockResolvedValue({ id: "goal1" }) };
   const mocks = {
     prisma,
     ai,
@@ -54,6 +59,11 @@ function makeService(overrides: Record<string, unknown> = {}) {
     liveContext,
     actions,
     voice,
+    promises,
+    debts,
+    prices,
+    travel,
+    accountability,
     ...overrides
   };
   return {
@@ -66,7 +76,12 @@ function makeService(overrides: Record<string, unknown> = {}) {
       mocks.memory as any,
       mocks.liveContext as any,
       mocks.actions as any,
-      mocks.voice as any
+      mocks.voice as any,
+      mocks.promises as any,
+      mocks.debts as any,
+      mocks.prices as any,
+      mocks.travel as any,
+      mocks.accountability as any
     ),
     mocks
   };
@@ -289,5 +304,64 @@ describe("AgentOrchestratorService", () => {
     );
     expect(mocks.liveContext.createWeatherTrigger).not.toHaveBeenCalled();
     expect(mocks.prisma.toolExecution.create).not.toHaveBeenCalled();
+  });
+
+  it("turns a normal answer into a plan without executing it", async () => {
+    const { service, mocks } = makeService();
+    mocks.prisma.chatMessage.findFirst.mockResolvedValue({
+      id: "message1",
+      userId: "u1",
+      conversationId: "c1",
+      role: "ASSISTANT",
+      content: "Pack identification, medication, and a charger."
+    });
+
+    const result = await service.turnThisInto("u1", "message1", "checklist");
+
+    expect(result.plan.items[0]).toMatchObject({
+      type: "create_action_prompt",
+      requiresConfirmation: true,
+      payload: expect.objectContaining({ actionType: "GENERATE_CHECKLIST" })
+    });
+    expect(mocks.actions.create).not.toHaveBeenCalled();
+  });
+
+  it("routes a confirmed debt memory into the debt ledger", async () => {
+    const { service, mocks } = makeService();
+    const plan = {
+      id: "p1",
+      summary: "Save debt",
+      requiresConfirmation: true,
+      items: [{
+        id: "i1",
+        type: "create_memory",
+        title: "David owes me 8k",
+        description: "Save debt memory",
+        riskLevel: "low",
+        status: "proposed",
+        payload: {
+          intent: {
+            intentType: "debt_memory",
+            person: "David",
+            amount: 8000,
+            currency: "NGN",
+            direction: "receivable",
+            confidence: 0.9,
+            requiresConfirmation: true
+          }
+        },
+        requiresConfirmation: true,
+        sensitive: false
+      }]
+    };
+    mocks.prisma.agentRun.findFirst.mockResolvedValue({ id: "run1", userId: "u1", conversationId: "c1", plan });
+
+    await service.confirmRun("u1", "run1");
+
+    expect(mocks.debts.create).toHaveBeenCalledWith("u1", expect.objectContaining({
+      personName: "David",
+      amount: 8000
+    }));
+    expect(mocks.memory.create).not.toHaveBeenCalled();
   });
 });

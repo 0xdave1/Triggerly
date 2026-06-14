@@ -110,6 +110,7 @@ enum MemoryType {
   PLACE
   PRICE
   DEBT
+  FAVOUR
   PROMISE
   PREFERENCE
   TRAVEL
@@ -122,6 +123,8 @@ enum MemorySource {
   MANUAL
   AI_EXTRACTED
   IMPORTED
+  SHARE_EXTENSION
+  SYSTEM_SUGGESTED
 }
 
 enum MemoryStatus {
@@ -156,6 +159,99 @@ enum PriceLogSource {
   MANUAL
   OCR
   AI_PARSE
+  AI_CHAT
+  SHARE_EXTENSION
+}
+
+enum BriefingType {
+  MORNING
+  EVENING
+  TRAVEL
+  CUSTOM
+}
+
+enum PromiseStatus {
+  PENDING
+  COMPLETED
+  OVERDUE
+  CANCELLED
+}
+
+enum DebtDirection {
+  OWED_TO_ME
+  I_OWE
+}
+
+enum DebtStatus {
+  PENDING
+  PAID
+  CANCELLED
+}
+
+enum TravelPlanStatus {
+  PLANNED
+  ACTIVE
+  COMPLETED
+  CANCELLED
+}
+
+enum AccountabilityStrictness {
+  GENTLE
+  BALANCED
+  STRICT
+}
+
+enum AccountabilityGoalStatus {
+  ACTIVE
+  PAUSED
+  COMPLETED
+  CANCELLED
+}
+
+enum AccountabilityCheckInStatus {
+  DONE
+  MISSED
+  SNOOZED
+}
+
+enum FollowUpSourceType {
+  REMINDER
+  ACTION
+  MEMORY
+  TRAVEL
+  PRICE
+  PROMISE
+  DEBT
+}
+
+enum FollowUpSuggestionStatus {
+  PENDING
+  ACCEPTED
+  DISMISSED
+  EXPIRED
+}
+
+enum ShareCaptureContentType {
+  TEXT
+  IMAGE
+  URL
+  FILE
+}
+
+enum ShareCaptureStatus {
+  RECEIVED
+  PARSED
+  CONFIRMED
+  DISCARDED
+}
+
+enum VoicePersonalityStyle {
+  CALM
+  PROFESSIONAL
+  FRIENDLY_NIGERIAN
+  STRICT_COACH
+  MINIMAL
+  ENERGETIC
 }
 
 enum ChatMessageRole {
@@ -187,52 +283,63 @@ enum UserApprovalDecision {
 }
 
 model User {
-  id              String                @id @default(cuid())
-  name            String?
-  email           String                @unique
-  passwordHash    String
-  createdAt       DateTime              @default(now())
-  updatedAt       DateTime              @updatedAt
-  reminders       Reminder[]
-  events          ReminderEvent[]
-  devices         Device[]
-  privacySetting  UserPrivacySetting?
-  voiceSetting    UserVoiceSetting?
-  contactMemories ContactMemory[]
-  actionPrompts   ActionPrompt[]
-  actionPromptEvents ActionPromptEvent[]
-  intentParseLogs IntentParseLog[]
-  triggers        Trigger[]
-  habitTriggers   HabitTrigger[]
-  liveContextTriggers LiveContextTrigger[]
-  priceLogs       PriceLog[]
-  memories        Memory[]
-  memoryEvents    MemoryEvent[]
-  conversations   Conversation[]
-  chatMessages    ChatMessage[]
-  agentRuns       AgentRun[]
-  toolExecutions  ToolExecution[]
-  approvals       UserApproval[]
+  id                     String                  @id @default(cuid())
+  name                   String?
+  email                  String                  @unique
+  passwordHash           String
+  createdAt              DateTime                @default(now())
+  updatedAt              DateTime                @updatedAt
+  reminders              Reminder[]
+  events                 ReminderEvent[]
+  devices                Device[]
+  privacySetting         UserPrivacySetting?
+  voiceSetting           UserVoiceSetting?
+  contactMemories        ContactMemory[]
+  actionPrompts          ActionPrompt[]
+  actionPromptEvents     ActionPromptEvent[]
+  intentParseLogs        IntentParseLog[]
+  triggers               Trigger[]
+  habitTriggers          HabitTrigger[]
+  liveContextTriggers    LiveContextTrigger[]
+  priceLogs              PriceLog[]
+  memories               Memory[]
+  memoryEvents           MemoryEvent[]
+  conversations          Conversation[]
+  chatMessages           ChatMessage[]
+  agentRuns              AgentRun[]
+  toolExecutions         ToolExecution[]
+  approvals              UserApproval[]
+  briefingPreference     BriefingPreference?
+  briefings              Briefing[]
+  promises               Promise[]
+  debts                  Debt[]
+  travelPlans            TravelPlan[]
+  accountabilityGoals    AccountabilityGoal[]
+  accountabilityCheckIns AccountabilityCheckIn[]
+  followUpSuggestions    FollowUpSuggestion[]
+  shareCaptures          ShareCapture[]
+  widgetPreference       WidgetPreference?
+  voicePersonality       VoicePersonality?
 }
 
 model Reminder {
-  id              String            @id @default(cuid())
+  id              String           @id @default(cuid())
   userId          String
   title           String
   notes           String?
   type            ReminderType
-  status          ReminderStatus    @default(ACTIVE)
-  createdAt       DateTime          @default(now())
-  updatedAt       DateTime          @updatedAt
+  status          ReminderStatus   @default(ACTIVE)
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
   completedAt     DateTime?
   deletedAt       DateTime?
-  deliveryMode    DeliveryMode      @default(PUSH)
+  deliveryMode    DeliveryMode     @default(PUSH)
   voiceScript     String?
-  voiceEnabled    Boolean           @default(false)
+  voiceEnabled    Boolean          @default(false)
   contactMemoryId String?
   actionPromptId  String?
-  user            User              @relation(fields: [userId], references: [id], onDelete: Cascade)
-  contactMemory   ContactMemory?    @relation(fields: [contactMemoryId], references: [id], onDelete: SetNull)
+  user            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  contactMemory   ContactMemory?   @relation(fields: [contactMemoryId], references: [id], onDelete: SetNull)
   locationTrigger LocationTrigger?
   timeTrigger     TimeTrigger?
   habit           Habit?
@@ -273,15 +380,15 @@ model TimeTrigger {
 }
 
 model Habit {
-  id              String              @id @default(cuid())
-  reminderId      String              @unique
+  id              String             @id @default(cuid())
+  reminderId      String             @unique
   frequencyType   HabitFrequencyType
   frequencyCount  Int
   lastCompletedAt DateTime?
   nextDueAt       DateTime?
-  createdAt       DateTime            @default(now())
-  updatedAt       DateTime            @updatedAt
-  reminder        Reminder            @relation(fields: [reminderId], references: [id], onDelete: Cascade)
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+  reminder        Reminder           @relation(fields: [reminderId], references: [id], onDelete: Cascade)
 
   @@index([nextDueAt])
 }
@@ -307,17 +414,17 @@ model Trigger {
 }
 
 model HabitTrigger {
-  id              String              @id @default(cuid())
+  id              String             @id @default(cuid())
   userId          String
-  triggerId       String?             @unique
+  triggerId       String?            @unique
   frequencyType   HabitFrequencyType
   frequencyCount  Int
   lastCompletedAt DateTime?
   nextDueAt       DateTime?
-  createdAt       DateTime            @default(now())
-  updatedAt       DateTime            @updatedAt
-  user            User                @relation(fields: [userId], references: [id], onDelete: Cascade)
-  trigger         Trigger?            @relation(fields: [triggerId], references: [id], onDelete: SetNull)
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+  user            User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  trigger         Trigger?           @relation(fields: [triggerId], references: [id], onDelete: SetNull)
 
   @@index([userId, nextDueAt])
 }
@@ -340,20 +447,21 @@ model LiveContextTrigger {
 }
 
 model PriceLog {
-  id            String         @id @default(cuid())
-  userId        String
-  itemName      String
-  price         Float
-  currency      String         @default("NGN")
-  quantityLabel String?
-  placeName     String?
-  latitude      Float?
-  longitude     Float?
-  loggedAt      DateTime       @default(now())
-  source        PriceLogSource @default(MANUAL)
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
-  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id             String         @id @default(cuid())
+  userId         String
+  itemName       String
+  price          Float
+  currency       String         @default("NGN")
+  quantityLabel  String?
+  placeName      String?
+  latitude       Float?
+  longitude      Float?
+  loggedAt       DateTime       @default(now())
+  source         PriceLogSource @default(MANUAL)
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  user           User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sourceMemories Memory[]       @relation("PriceLogMemory")
 
   @@index([userId, itemName, loggedAt])
 }
@@ -394,6 +502,10 @@ model Memory {
   deletedAt  DateTime?
   user       User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   events     MemoryEvent[]
+  priceLogId String?
+  priceLog   PriceLog?     @relation("PriceLogMemory", fields: [priceLogId], references: [id], onDelete: SetNull)
+  promises   Promise[]
+  debts      Debt[]
 
   @@index([userId, type, status])
   @@index([userId, status])
@@ -414,80 +526,90 @@ model MemoryEvent {
 }
 
 model ReminderEvent {
-  id          String            @id @default(cuid())
-  reminderId  String
-  userId      String
-  eventType   ReminderEventType
-  timestamp   DateTime          @default(now())
-  metadata    Json?
-  reminder    Reminder          @relation(fields: [reminderId], references: [id], onDelete: Cascade)
-  user        User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id         String            @id @default(cuid())
+  reminderId String
+  userId     String
+  eventType  ReminderEventType
+  timestamp  DateTime          @default(now())
+  metadata   Json?
+  reminder   Reminder          @relation(fields: [reminderId], references: [id], onDelete: Cascade)
+  user       User              @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, timestamp])
   @@index([reminderId, timestamp])
 }
 
 model Device {
-  id          String          @id @default(cuid())
-  userId      String
-  platform    DevicePlatform
-  pushToken   String
-  createdAt   DateTime        @default(now())
-  updatedAt   DateTime        @updatedAt
-  lastSeenAt  DateTime?
-  user        User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id         String         @id @default(cuid())
+  userId     String
+  platform   DevicePlatform
+  pushToken  String
+  createdAt  DateTime       @default(now())
+  updatedAt  DateTime       @updatedAt
+  lastSeenAt DateTime?
+  user       User           @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, pushToken])
   @@index([userId])
 }
 
 model UserPrivacySetting {
-  id                              String    @id @default(cuid())
-  userId                          String    @unique
-  locationEnabled                 Boolean   @default(false)
-  voiceInputEnabled               Boolean   @default(false)
-  aiParsingEnabled                Boolean   @default(true)
-  dataRetentionDays               Int?
-  locationTriggersEnabled         Boolean   @default(false)
-  backgroundLocationEnabled       Boolean   @default(false)
-  microphoneInputEnabled          Boolean   @default(false)
-  voiceNotificationsEnabled       Boolean   @default(false)
-  cloudSyncEnabled                Boolean   @default(true)
-  contactAccessEnabled            Boolean   @default(false)
-  emailDraftingEnabled            Boolean   @default(false)
-  messageDraftingEnabled          Boolean   @default(false)
-  paymentRemindersEnabled         Boolean   @default(false)
-  paymentActionsEnabled           Boolean   @default(false)
-  calendarIntegrationEnabled      Boolean   @default(false)
+  id                               String   @id @default(cuid())
+  userId                           String   @unique
+  locationEnabled                  Boolean  @default(false)
+  voiceInputEnabled                Boolean  @default(false)
+  aiParsingEnabled                 Boolean  @default(true)
+  dataRetentionDays                Int?
+  locationTriggersEnabled          Boolean  @default(false)
+  backgroundLocationEnabled        Boolean  @default(false)
+  microphoneInputEnabled           Boolean  @default(false)
+  voiceNotificationsEnabled        Boolean  @default(false)
+  cloudSyncEnabled                 Boolean  @default(true)
+  contactAccessEnabled             Boolean  @default(false)
+  emailDraftingEnabled             Boolean  @default(false)
+  messageDraftingEnabled           Boolean  @default(false)
+  paymentRemindersEnabled          Boolean  @default(false)
+  paymentActionsEnabled            Boolean  @default(false)
+  calendarIntegrationEnabled       Boolean  @default(false)
   screenshotReceiptScanningEnabled Boolean  @default(false)
-  smartSuggestionsEnabled         Boolean   @default(true)
-  memoryEnabled                   Boolean   @default(true)
-  contactMemoryEnabled            Boolean   @default(false)
-  habitLearningEnabled            Boolean   @default(false)
-  weatherTriggersEnabled          Boolean   @default(false)
-  exchangeRateTriggersEnabled     Boolean   @default(false)
-  priceMemoryEnabled              Boolean   @default(false)
-  travelContextEnabled            Boolean   @default(false)
-  analyticsEnabled                Boolean   @default(false)
-  crashReportsEnabled             Boolean   @default(false)
-  dataExportEnabled               Boolean   @default(true)
-  createdAt                       DateTime  @default(now())
-  updatedAt                       DateTime  @updatedAt
-  user                            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  smartSuggestionsEnabled          Boolean  @default(true)
+  memoryEnabled                    Boolean  @default(true)
+  contactMemoryEnabled             Boolean  @default(false)
+  habitLearningEnabled             Boolean  @default(false)
+  weatherTriggersEnabled           Boolean  @default(false)
+  exchangeRateTriggersEnabled      Boolean  @default(false)
+  priceMemoryEnabled               Boolean  @default(false)
+  travelContextEnabled             Boolean  @default(false)
+  analyticsEnabled                 Boolean  @default(false)
+  crashReportsEnabled              Boolean  @default(false)
+  dataExportEnabled                Boolean  @default(true)
+  briefingsEnabled                 Boolean  @default(true)
+  promiseTrackingEnabled           Boolean  @default(true)
+  debtFavourMemoryEnabled          Boolean  @default(true)
+  travelModeEnabled                Boolean  @default(true)
+  smartSnoozeEnabled               Boolean  @default(true)
+  voicePersonalityEnabled          Boolean  @default(true)
+  accountabilityModeEnabled        Boolean  @default(true)
+  followUpSuggestionsEnabled       Boolean  @default(true)
+  widgetSummaryEnabled             Boolean  @default(true)
+  shareCaptureEnabled              Boolean  @default(true)
+  createdAt                        DateTime @default(now())
+  updatedAt                        DateTime @updatedAt
+  user                             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model UserVoiceSetting {
-  id                        String    @id @default(cuid())
-  userId                    String    @unique
-  voiceNotificationsEnabled Boolean   @default(false)
-  selectedVoiceStyle        String    @default("calm")
+  id                        String   @id @default(cuid())
+  userId                    String   @unique
+  voiceNotificationsEnabled Boolean  @default(false)
+  selectedVoiceStyle        String   @default("calm")
   selectedVoiceId           String?
-  readFullReminder          Boolean   @default(true)
-  readLocationContext       Boolean   @default(true)
-  readLiveContext           Boolean   @default(true)
-  createdAt                 DateTime  @default(now())
-  updatedAt                 DateTime  @updatedAt
-  user                      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  readFullReminder          Boolean  @default(true)
+  readLocationContext       Boolean  @default(true)
+  readLiveContext           Boolean  @default(true)
+  createdAt                 DateTime @default(now())
+  updatedAt                 DateTime @updatedAt
+  user                      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model ContactMemory {
@@ -581,19 +703,19 @@ model ChatMessage {
 }
 
 model AgentRun {
-  id             String         @id @default(cuid())
+  id             String          @id @default(cuid())
   userId         String
   conversationId String
-  status         AgentRunStatus @default(PLANNING)
+  status         AgentRunStatus  @default(PLANNING)
   userInput      String
   plan           Json
   result         Json?
   errorMessage   String?
-  createdAt      DateTime       @default(now())
-  updatedAt      DateTime       @updatedAt
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
   completedAt    DateTime?
-  user           User           @relation(fields: [userId], references: [id], onDelete: Cascade)
-  conversation   Conversation   @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  conversation   Conversation    @relation(fields: [conversationId], references: [id], onDelete: Cascade)
   toolExecutions ToolExecution[]
   approvals      UserApproval[]
 
@@ -631,4 +753,192 @@ model UserApproval {
 
   @@index([agentRunId, createdAt])
   @@index([userId, createdAt])
+}
+
+model BriefingPreference {
+  id                     String   @id @default(cuid())
+  userId                 String   @unique
+  morningBriefingEnabled Boolean  @default(false)
+  eveningBriefingEnabled Boolean  @default(false)
+  morningTime            String   @default("08:00")
+  eveningTime            String   @default("21:00")
+  includeWeather         Boolean  @default(true)
+  includeActions         Boolean  @default(true)
+  includeHabits          Boolean  @default(true)
+  includeMemory          Boolean  @default(true)
+  voiceEnabled           Boolean  @default(false)
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+  user                   User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Briefing {
+  id          String       @id @default(cuid())
+  userId      String
+  type        BriefingType
+  title       String
+  summary     String
+  items       Json
+  generatedAt DateTime     @default(now())
+  createdAt   DateTime     @default(now())
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, generatedAt])
+}
+
+model Promise {
+  id             String        @id @default(cuid())
+  userId         String
+  personName     String
+  taskTitle      String
+  deadline       DateTime?
+  status         PromiseStatus @default(PENDING)
+  sourceMemoryId String?
+  reminderId     String?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  completedAt    DateTime?
+  user           User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sourceMemory   Memory?       @relation(fields: [sourceMemoryId], references: [id], onDelete: SetNull)
+
+  @@index([userId, status, deadline])
+}
+
+model Debt {
+  id             String        @id @default(cuid())
+  userId         String
+  personName     String
+  amount         Decimal       @db.Decimal(18, 2)
+  currency       String        @default("NGN")
+  direction      DebtDirection
+  status         DebtStatus    @default(PENDING)
+  sourceMemoryId String?
+  reminderId     String?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  settledAt      DateTime?
+  user           User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sourceMemory   Memory?       @relation(fields: [sourceMemoryId], references: [id], onDelete: SetNull)
+
+  @@index([userId, status, direction])
+}
+
+model TravelPlan {
+  id                   String                @id @default(cuid())
+  userId               String
+  destination          String
+  origin               String?
+  departureDate        DateTime?
+  returnDate           DateTime?
+  weatherAlertsEnabled Boolean               @default(false)
+  checklistEnabled     Boolean               @default(true)
+  status               TravelPlanStatus      @default(PLANNED)
+  createdAt            DateTime              @default(now())
+  updatedAt            DateTime              @updatedAt
+  user                 User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  checklistItems       TravelChecklistItem[]
+
+  @@index([userId, status, departureDate])
+}
+
+model TravelChecklistItem {
+  id           String     @id @default(cuid())
+  travelPlanId String
+  title        String
+  completed    Boolean    @default(false)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  travelPlan   TravelPlan @relation(fields: [travelPlanId], references: [id], onDelete: Cascade)
+
+  @@index([travelPlanId, completed])
+}
+
+model AccountabilityGoal {
+  id             String                   @id @default(cuid())
+  userId         String
+  title          String
+  description    String?
+  frequencyType  HabitFrequencyType
+  frequencyCount Int                      @default(1)
+  strictness     AccountabilityStrictness @default(BALANCED)
+  voiceEnabled   Boolean                  @default(false)
+  status         AccountabilityGoalStatus @default(ACTIVE)
+  createdAt      DateTime                 @default(now())
+  updatedAt      DateTime                 @updatedAt
+  user           User                     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  checkIns       AccountabilityCheckIn[]
+
+  @@index([userId, status])
+}
+
+model AccountabilityCheckIn {
+  id        String                      @id @default(cuid())
+  goalId    String
+  userId    String
+  status    AccountabilityCheckInStatus
+  note      String?
+  checkedAt DateTime                    @default(now())
+  createdAt DateTime                    @default(now())
+  goal      AccountabilityGoal          @relation(fields: [goalId], references: [id], onDelete: Cascade)
+  user      User                        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, checkedAt])
+  @@index([goalId, checkedAt])
+}
+
+model FollowUpSuggestion {
+  id                  String                   @id @default(cuid())
+  userId              String
+  sourceType          FollowUpSourceType
+  sourceId            String
+  title               String
+  description         String
+  suggestedActionType String
+  payload             Json
+  status              FollowUpSuggestionStatus @default(PENDING)
+  createdAt           DateTime                 @default(now())
+  updatedAt           DateTime                 @updatedAt
+  user                User                     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, status, createdAt])
+}
+
+model ShareCapture {
+  id          String                  @id @default(cuid())
+  userId      String
+  contentType ShareCaptureContentType
+  rawText     String?
+  fileUrl     String?
+  parsedPlan  Json?
+  status      ShareCaptureStatus      @default(RECEIVED)
+  createdAt   DateTime                @default(now())
+  updatedAt   DateTime                @updatedAt
+  user        User                    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, status, createdAt])
+}
+
+model WidgetPreference {
+  id                    String   @id @default(cuid())
+  userId                String   @unique
+  nextTriggerEnabled    Boolean  @default(true)
+  briefingEnabled       Boolean  @default(true)
+  pendingActionsEnabled Boolean  @default(true)
+  weatherEnabled        Boolean  @default(false)
+  habitsEnabled         Boolean  @default(false)
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+  user                  User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VoicePersonality {
+  id                        String                @id @default(cuid())
+  userId                    String                @unique
+  style                     VoicePersonalityStyle @default(CALM)
+  voiceNotificationsEnabled Boolean               @default(false)
+  readFullReminder          Boolean               @default(true)
+  readSensitiveContent      Boolean               @default(false)
+  createdAt                 DateTime              @default(now())
+  updatedAt                 DateTime              @updatedAt
+  user                      User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
 }

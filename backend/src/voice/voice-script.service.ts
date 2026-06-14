@@ -9,8 +9,10 @@ export class VoiceScriptService {
 
   async generateVoiceScript(userId: string, dto: GenerateScriptDto) {
     const settings = await this.prisma.userVoiceSetting.upsert({ where: { userId }, create: { userId }, update: {} });
-    if (dto.reminderId) return this.generateForReminder(userId, dto.reminderId, dto.context, settings.selectedVoiceStyle);
-    if (dto.intent) return { script: this.applyStyle(this.generateForIntent(dto.intent, dto.context), settings.selectedVoiceStyle) };
+    const personality = await this.prisma.voicePersonality.upsert({ where: { userId }, create: { userId }, update: {} });
+    const style = personality.style.toLowerCase();
+    if (dto.reminderId) return this.generateForReminder(userId, dto.reminderId, dto.context, style);
+    if (dto.intent) return { script: this.applyStyle(this.generateForIntent(dto.intent, dto.context), style) };
     throw new BadRequestException("Provide reminderId or intent.");
   }
 
@@ -86,6 +88,8 @@ export class VoiceScriptService {
     if (style === "professional") return `Reminder. ${script}`;
     if (style === "friendly") return `Hi there. ${script}`;
     if (style === "minimal") return script.replace(/You asked me to /g, "").replace(/Do you want to do it now\?/g, "Ready when you are.");
+    if (style === "friendly_nigerian") return `Quick one. ${script}`;
+    if (style === "strict_coach") return `You marked this important. It's time to act. ${script}`;
     return script;
   }
 

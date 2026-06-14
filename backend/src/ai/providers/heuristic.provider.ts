@@ -85,11 +85,11 @@ export class HeuristicAiProvider implements AiProvider {
     if (intent.intentType === "travel_plan" && !intent.weatherCandidate) {
       return [
         this.item(
-          "ask_clarification",
-          `Trip to ${intent.destination ?? "your destination"}`,
-          intent.clarificationQuestion ?? "Should I check the weather and prepare a travel checklist?",
-          { intent },
-          false
+          "create_memory",
+          `Travel mode for ${intent.destination ?? "your trip"}`,
+          "Prepare a travel plan and checklist after confirmation.",
+          { intent, operation: "travel_plan", destination: intent.destination, time: intent.timeCandidate },
+          true
         )
       ];
     }

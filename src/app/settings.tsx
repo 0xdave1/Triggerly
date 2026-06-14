@@ -22,6 +22,16 @@ import { loadVoiceSettings, saveVoiceSettings } from "@/features/voice/settings"
 import { speakReminder } from "@/features/voice/speech";
 import { defaultVoiceSettings, type VoiceSettings } from "@/features/voice/types";
 import { colors, spacing, typography } from "@/styles/theme";
+import { VoicePersonalityCard } from "@/components/assistant/VoicePersonalityCard";
+import { WidgetPreviewCard } from "@/components/assistant/WidgetPreviewCard";
+import {
+  useAssistantActions,
+  useBriefingPreferences,
+  useVoicePersonality,
+  useWidgetPreferences,
+  useWidgetSummary
+} from "@/features/assistant/hooks";
+import type { VoicePersonality } from "@/features/assistant/types";
 
 export default function SettingsScreen() {
   const [notificationStatus, setNotificationStatus] = useState<PermissionState>("undetermined");
@@ -31,6 +41,11 @@ export default function SettingsScreen() {
   const { user, logout } = useAuth();
   const privacySettings = usePrivacySettings();
   const updatePrivacy = useUpdatePrivacySettings();
+  const personality = useVoicePersonality();
+  const widgetSummary = useWidgetSummary();
+  const widgetPreferences = useWidgetPreferences();
+  const briefingPreferences = useBriefingPreferences();
+  const assistantActions = useAssistantActions();
 
   const refresh = async () => {
     setNotificationStatus(await getNotificationPermissionStatus());
@@ -135,6 +150,41 @@ export default function SettingsScreen() {
         </View>
       </TerminalCard>
 
+      <TerminalCard title="Voice personality">
+        <VoicePersonalityCard
+          value={personality.data ?? defaultPersonality}
+          onChange={(input) => assistantActions.updateVoice.mutate(input)}
+        />
+      </TerminalCard>
+
+      <TerminalCard title="Daily briefing settings">
+        <PrivacyToggleRow
+          label="Morning briefing"
+          value={Boolean(briefingPreferences.data?.morningBriefingEnabled)}
+          description={`Prepared at ${briefingPreferences.data?.morningTime ?? "08:00"} when enabled.`}
+          onToggle={() => assistantActions.updateBriefing.mutate({ morningBriefingEnabled: !briefingPreferences.data?.morningBriefingEnabled })}
+        />
+        <PrivacyToggleRow
+          label="Evening review"
+          value={Boolean(briefingPreferences.data?.eveningBriefingEnabled)}
+          description={`Prepared at ${briefingPreferences.data?.eveningTime ?? "21:00"} when enabled.`}
+          onToggle={() => assistantActions.updateBriefing.mutate({ eveningBriefingEnabled: !briefingPreferences.data?.eveningBriefingEnabled })}
+        />
+      </TerminalCard>
+
+      <TerminalCard title="Widget settings">
+        <WidgetPreviewCard summary={widgetSummary.data} />
+        {(["nextTriggerEnabled", "briefingEnabled", "pendingActionsEnabled", "weatherEnabled", "habitsEnabled"] as const).map((key) => (
+          <PrivacyToggleRow
+            key={key}
+            label={key}
+            value={Boolean(widgetPreferences.data?.[key])}
+            description="Controls the data prepared for future native widgets."
+            onToggle={() => assistantActions.updateWidgets.mutate({ [key]: !widgetPreferences.data?.[key] })}
+          />
+        ))}
+      </TerminalCard>
+
       <TerminalCard title="Your privacy boundaries" active>
         <Text style={styles.body}>{PRIVACY_COPY.boundaries}</Text>
         <Text style={styles.body}>{PRIVACY_COPY.location}</Text>
@@ -190,5 +240,22 @@ const privacyRows: Array<{ key: PrivacySettingKey; description: string }> = [
   { key: "travelContextEnabled", description: "Allow travel context prompts." },
   { key: "analyticsEnabled", description: "No hidden analytics." },
   { key: "crashReportsEnabled", description: "No reminder content in crash reports." },
-  { key: "dataExportEnabled", description: "Allow privacy export." }
+  { key: "dataExportEnabled", description: "Allow privacy export." },
+  { key: "briefingsEnabled", description: "Generate summaries from data you already confirmed." },
+  { key: "promiseTrackingEnabled", description: "Track commitments you explicitly save." },
+  { key: "debtFavourMemoryEnabled", description: "Keep calm, user-approved debt and favour records." },
+  { key: "travelModeEnabled", description: "Prepare travel plans and checklists after confirmation." },
+  { key: "smartSnoozeEnabled", description: "Offer contextual snooze options." },
+  { key: "voicePersonalityEnabled", description: "Allow a selected reminder tone and personality." },
+  { key: "accountabilityModeEnabled", description: "Enable user-created consistency goals." },
+  { key: "followUpSuggestionsEnabled", description: "Show optional next steps; never create them automatically." },
+  { key: "widgetSummaryEnabled", description: "Prepare privacy-safe widget summary data." },
+  { key: "shareCaptureEnabled", description: "Allow text pasted into Triggerly for confirmation-first parsing." }
 ];
+
+const defaultPersonality: VoicePersonality = {
+  style: "CALM",
+  voiceNotificationsEnabled: false,
+  readFullReminder: true,
+  readSensitiveContent: false
+};

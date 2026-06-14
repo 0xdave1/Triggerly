@@ -1,6 +1,6 @@
-export type MemoryType = "person" | "place" | "price" | "debt" | "promise" | "preference" | "travel" | "routine" | "document" | "general";
+export type MemoryType = "person" | "place" | "price" | "debt" | "favour" | "promise" | "preference" | "travel" | "routine" | "document" | "general";
 export type MemoryStatus = "active" | "archived" | "deleted";
-export type MemorySource = "manual" | "ai_extracted" | "imported";
+export type MemorySource = "manual" | "ai_extracted" | "imported" | "share_extension" | "system_suggested";
 
 export type MemoryItem = {
   id: string;

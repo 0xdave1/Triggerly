@@ -6,6 +6,7 @@ import { PrismaService } from "@/prisma/prisma.service";
 import { PrivacyService } from "@/privacy/privacy.service";
 import { HabitDto, LocationTriggerDto, TimeTriggerDto } from "@/reminders/dto/trigger.dto";
 import { ConfirmTriggerDto } from "./dto/confirm-trigger.dto";
+import { SmartSnoozeDto } from "./dto/smart-snooze.dto";
 
 @Injectable()
 export class TriggersService {
@@ -99,10 +100,79 @@ export class TriggersService {
     };
   }
 
+  async smartSnooze(userId: string, id: string, dto: SmartSnoozeDto) {
+    const settings = await this.privacy.getSettings(userId);
+    if (!settings.smartSnoozeEnabled) throw new ForbiddenException("Smart snooze is disabled in Control.");
+    const trigger = await this.prisma.trigger.findFirst({ where: { id, userId } });
+    const reminderId = trigger?.reminderId ?? id;
+    const reminder = await this.prisma.reminder.findFirst({ where: { id: reminderId, userId } });
+    if (!reminder) throw new BadRequestException("A linked reminder is required for smart snooze.");
+
+    if (dto.mode === "arrival" || dto.mode === "departure") {
+      if (!settings.locationTriggersEnabled) throw new ForbiddenException("Location triggers are disabled in Control.");
+      if (!dto.placeName) throw new BadRequestException("Choose a place for location snooze.");
+      return this.prisma.trigger.create({
+        data: {
+          userId,
+          reminderId,
+          type: dto.mode === "arrival" ? TriggerType.LOCATION_ARRIVAL : TriggerType.LOCATION_DEPARTURE,
+          title: reminder.title,
+          configuration: toPrismaJson({ placeName: dto.placeName, source: "smart_snooze", needsCoordinateConfirmation: true }),
+          requiresConfirmation: true,
+          confirmedAt: new Date()
+        }
+      });
+    }
+
+    if (dto.mode === "person") {
+      if (!settings.contactAccessEnabled && !dto.personName) throw new ForbiddenException("Select a person manually or enable contact access.");
+      return this.prisma.trigger.create({
+        data: {
+          userId,
+          reminderId,
+          type: TriggerType.CONTACT,
+          title: reminder.title,
+          configuration: toPrismaJson({ personName: dto.personName, source: "smart_snooze" }),
+          requiresConfirmation: true,
+          confirmedAt: new Date()
+        }
+      });
+    }
+
+    const snoozeUntil = resolveSmartSnoozeTime(dto);
+    await this.prisma.reminder.update({
+      where: { id: reminderId },
+      data: {
+        status: "SNOOZED",
+        timeTrigger: {
+          upsert: {
+            create: { triggerDateTime: snoozeUntil, timezone: "Africa/Lagos" },
+            update: { triggerDateTime: snoozeUntil, timezone: "Africa/Lagos" }
+          }
+        }
+      }
+    });
+    return { reminderId, mode: dto.mode, snoozeUntil: snoozeUntil.toISOString() };
+  }
+
   private async assertReminderOwner(userId: string, reminderId: string) {
     const reminder = await this.prisma.reminder.findFirst({ where: { id: reminderId, userId } });
     if (!reminder) throw new ForbiddenException("Reminder does not belong to this user.");
   }
+}
+
+function resolveSmartSnoozeTime(dto: SmartSnoozeDto) {
+  if (dto.mode === "custom") {
+    if (!dto.customAt) throw new BadRequestException("Choose a custom snooze time.");
+    return new Date(dto.customAt);
+  }
+  const now = new Date();
+  if (dto.mode === "10_minutes") return new Date(now.getTime() + 10 * 60 * 1000);
+  if (dto.mode === "1_hour") return new Date(now.getTime() + 60 * 60 * 1000);
+  const lagos = new Date(now.getTime() + 60 * 60 * 1000);
+  if (dto.mode === "tomorrow_morning") lagos.setUTCDate(lagos.getUTCDate() + 1);
+  lagos.setUTCHours(dto.mode === "tonight" ? 20 : 8, 0, 0, 0);
+  return new Date(lagos.getTime() - 60 * 60 * 1000);
 }
 
 function toLiveContextTriggerType(type: TriggerType): LiveContextTriggerType {

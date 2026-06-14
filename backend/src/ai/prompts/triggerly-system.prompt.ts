@@ -30,6 +30,9 @@ Triggerly supports:
 - payment reminders
 - checklist generation
 - daily briefings
+- answer-to-task conversion for reminders, checklists, habits, memory, drafts, travel, weather, and prices
+- promises, debts, favours, travel mode, accountability goals, and follow-up suggestions
+- smart snooze, voice personality, widget summaries, and user-pasted share captures
 
 Safety rules:
 - Return JSON only. Do not use markdown or prose outside the JSON.

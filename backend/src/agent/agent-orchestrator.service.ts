@@ -1,9 +1,12 @@
 import { ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
+import { randomUUID } from "node:crypto";
 import {
   ActionType,
+  AccountabilityStrictness,
   AgentRunStatus,
   ChatMessageRole,
   DeliveryMode,
+  DebtDirection,
   HabitFrequencyType,
   LocationTriggerType,
   MemorySource,
@@ -25,6 +28,11 @@ import { PrivacyService } from "@/privacy/privacy.service";
 import { RemindersService } from "@/reminders/reminders.service";
 import { TriggersService } from "@/triggers/triggers.service";
 import { VoiceScriptService } from "@/voice/voice-script.service";
+import { PromisesService } from "@/promises/promises.service";
+import { DebtsService } from "@/debts/debts.service";
+import { PricesService } from "@/prices/prices.service";
+import { TravelService } from "@/travel/travel.service";
+import { AccountabilityService } from "@/accountability/accountability.service";
 import type { AgentExecutionResult, AgentPlan, AgentPlanItem } from "./agent.types";
 
 @Injectable()
@@ -38,7 +46,12 @@ export class AgentOrchestratorService {
     private readonly memory: MemoryService,
     private readonly liveContext: LiveContextService,
     private readonly actions: ActionPromptsService,
-    private readonly voice: VoiceScriptService
+    private readonly voice: VoiceScriptService,
+    private readonly promises: PromisesService,
+    private readonly debts: DebtsService,
+    private readonly prices: PricesService,
+    private readonly travel: TravelService,
+    private readonly accountability: AccountabilityService
   ) {}
 
   async preparePlan(userId: string, userInput: string) {
@@ -83,6 +96,17 @@ export class AgentOrchestratorService {
     });
     if (!run) throw new NotFoundException("Agent run not found.");
     return run;
+  }
+
+  async turnThisInto(userId: string, sourceMessageId: string, targetType: string) {
+    const source = await this.prisma.chatMessage.findFirst({
+      where: { id: sourceMessageId, userId, role: ChatMessageRole.ASSISTANT }
+    });
+    if (!source) throw new NotFoundException("Source assistant message not found.");
+    const instruction = this.turnIntoInstruction(targetType, source.content);
+    const plan = this.turnIntoPlan(targetType, source.content);
+    const run = await this.createRun(userId, source.conversationId, instruction, plan);
+    return { agentRunId: run.id, plan };
   }
 
   async confirmRun(userId: string, id: string, itemIds?: string[]) {
@@ -274,7 +298,40 @@ export class AgentOrchestratorService {
     const intent = this.intentFromItem(item);
     if (item.type === "create_trigger") return this.createTrigger(userId, intent);
     if (item.type === "create_live_context_trigger") return this.createLiveContextTrigger(userId, intent);
-    if (item.type === "create_memory") return this.createMemory(userId, intent, String(item.payload.operation ?? "memory"));
+    if (item.type === "create_memory") {
+      const operation = String(item.payload.operation ?? "memory");
+      if (operation === "travel_plan") {
+        return this.travel.create(userId, {
+          destination: intent.destination ?? String(item.payload.destination ?? "Destination"),
+          departureDate: this.resolveOptionalDate(intent.timeCandidate)
+        }) as unknown as Promise<Record<string, unknown>>;
+      }
+      if (intent.intentType === "promise_memory") {
+        return this.promises.create(userId, {
+          personName: intent.person ?? String(intent.memoryCandidate?.person ?? "Someone"),
+          taskTitle: intent.taskTitle ?? String(intent.memoryCandidate?.commitment ?? "Follow up"),
+          deadline: this.resolveOptionalDate(intent.timeCandidate ?? (intent.deadline ? { phrase: intent.deadline } : undefined))
+        }) as unknown as Promise<Record<string, unknown>>;
+      }
+      if (intent.intentType === "debt_memory") {
+        return this.debts.create(userId, {
+          personName: intent.person ?? String(intent.memoryCandidate?.person ?? "Someone"),
+          amount: intent.amount ?? Number(intent.memoryCandidate?.amount ?? 0),
+          currency: intent.currency ?? String(intent.memoryCandidate?.currency ?? "NGN"),
+          direction: intent.direction === "payable" ? DebtDirection.I_OWE : DebtDirection.OWED_TO_ME
+        }) as unknown as Promise<Record<string, unknown>>;
+      }
+      if (operation === "price_log" && intent.item && typeof intent.price === "number") {
+        return this.prices.create(userId, {
+          itemName: intent.item,
+          price: intent.price,
+          currency: intent.currency ?? "NGN",
+          placeName: intent.place,
+          source: PriceLogSource.AI_CHAT
+        }) as unknown as Promise<Record<string, unknown>>;
+      }
+      return this.createMemory(userId, intent, operation);
+    }
     if (item.type === "create_action_prompt") {
       return this.actions.create(userId, {
         actionType: String(item.payload.actionType ?? intent.actionCandidate?.actionType) as ActionType,
@@ -307,6 +364,15 @@ export class AgentOrchestratorService {
       }) as unknown as Promise<Record<string, unknown>>;
     }
     if (intent.triggerType === "habit") {
+      if (intent.habitCandidate?.accountability === true) {
+        return this.accountability.create(userId, {
+          title: intent.taskTitle ?? "Accountability goal",
+          frequencyType: this.habitFrequency(intent),
+          frequencyCount: 1,
+          strictness: AccountabilityStrictness.BALANCED,
+          voiceEnabled: false
+        }) as unknown as Promise<Record<string, unknown>>;
+      }
       const frequency = String(intent.habitCandidate?.frequency ?? intent.frequency ?? "daily").toUpperCase();
       return this.reminders.create(userId, {
         title: intent.taskTitle ?? "Habit",
@@ -650,5 +716,73 @@ export class AgentOrchestratorService {
   private numberValue(value: unknown) {
     const number = typeof value === "number" ? value : typeof value === "string" ? Number(value) : NaN;
     return Number.isFinite(number) ? number : undefined;
+  }
+
+  private habitFrequency(intent: ParsedIntent): HabitFrequencyType {
+    const frequency = String(intent.habitCandidate?.frequency ?? intent.frequency ?? "daily").toUpperCase();
+    return Object.values(HabitFrequencyType).includes(frequency as HabitFrequencyType)
+      ? (frequency as HabitFrequencyType)
+      : HabitFrequencyType.DAILY;
+  }
+
+  private resolveOptionalDate(candidate?: Record<string, unknown>) {
+    return candidate ? this.resolveTimeCandidate(candidate) : undefined;
+  }
+
+  private turnIntoInstruction(targetType: string, content: string) {
+    const instructions: Record<string, string> = {
+      reminder: `Create a reminder from this answer: ${content}`,
+      checklist: `Create a checklist from this answer: ${content}`,
+      habit: `Create a recurring habit from this answer: ${content}`,
+      memory: `Save the useful facts in this answer as memory: ${content}`,
+      email_draft: `Draft an email based on this answer: ${content}`,
+      travel_plan: `Create a travel plan from this answer: ${content}`,
+      weather_alert: `Create a weather alert related to this answer: ${content}`,
+      price_memory: `Save the price information in this answer as price memory: ${content}`
+    };
+    return instructions[targetType] ?? `Create a reviewable plan from this answer: ${content}`;
+  }
+
+  private turnIntoPlan(targetType: string, content: string): AgentPlan {
+    const itemId = randomUUID();
+    const common = {
+      id: itemId,
+      title: this.turnIntoTitle(targetType),
+      description: "Review and edit the details before Triggerly creates anything.",
+      riskLevel: "low" as const,
+      status: "proposed" as const,
+      requiresConfirmation: true,
+      sensitive: false
+    };
+    const item: AgentPlanItem =
+      targetType === "checklist"
+        ? { ...common, type: "create_action_prompt", payload: { actionType: "GENERATE_CHECKLIST", sourceText: content, executionAllowed: false } }
+        : targetType === "email_draft"
+          ? { ...common, type: "create_action_prompt", riskLevel: "sensitive", sensitive: true, payload: { actionType: "DRAFT_EMAIL", sourceText: content, executionAllowed: false } }
+          : targetType === "weather_alert"
+            ? { ...common, type: "create_live_context_trigger", payload: { triggerType: "weather", sourceText: content, needsDetails: true } }
+            : targetType === "memory" || targetType === "price_memory" || targetType === "travel_plan"
+              ? { ...common, type: "create_memory", payload: { memoryType: targetType === "price_memory" ? "price" : targetType === "travel_plan" ? "travel" : "general", sourceText: content } }
+              : { ...common, type: "create_trigger", payload: { triggerType: targetType === "habit" ? "habit" : "time", taskTitle: this.turnIntoTitle(targetType), sourceText: content, needsDetails: true } };
+    return {
+      id: randomUUID(),
+      summary: "I prepared one option from that answer. Check the details before confirming.",
+      requiresConfirmation: true,
+      items: [item]
+    };
+  }
+
+  private turnIntoTitle(targetType: string) {
+    const labels: Record<string, string> = {
+      reminder: "Reminder from this answer",
+      checklist: "Checklist from this answer",
+      habit: "Habit from this answer",
+      memory: "Save this answer as memory",
+      email_draft: "Email draft from this answer",
+      travel_plan: "Travel plan from this answer",
+      weather_alert: "Weather alert from this answer",
+      price_memory: "Price memory from this answer"
+    };
+    return labels[targetType] ?? "Plan from this answer";
   }
 }

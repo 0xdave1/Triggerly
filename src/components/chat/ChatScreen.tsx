@@ -21,7 +21,10 @@ import { speakText } from "@/features/voice/speech";
 import { getFriendlyApiError } from "@/lib/apiClient";
 import { createId } from "@/lib/id";
 import { colors, radii, spacing, typography } from "@/styles/theme";
-import { AgentPlanCard } from "./AgentPlanCard";
+import { DailyBriefingCard } from "@/components/assistant/DailyBriefingCard";
+import { SmartConfirmationCard } from "@/components/assistant/SmartConfirmationCard";
+import { TurnThisIntoBar } from "@/components/assistant/TurnThisIntoBar";
+import { useAssistantActions, useDailyBriefing } from "@/features/assistant/hooks";
 import { ChatInput } from "./ChatInput";
 import { MessageBubble } from "./MessageBubble";
 import { TypingIndicator } from "./TypingIndicator";
@@ -43,6 +46,8 @@ export function ChatScreen() {
   const conversations = useConversations();
   const conversation = useConversation(conversationId);
   const actions = useChatActions();
+  const assistantActions = useAssistantActions();
+  const briefing = useDailyBriefing();
   const privacy = usePrivacySettings();
 
   useEffect(() => {
@@ -215,6 +220,26 @@ export function ChatScreen() {
     setNotice("Tap-to-speak transcription needs a native speech-to-text provider. No recording has started.");
   };
 
+  const turnThisInto = async (sourceMessageId: string, targetType: string) => {
+    setNotice(undefined);
+    try {
+      const result = await assistantActions.turnThisInto.mutateAsync({ sourceMessageId, targetType });
+      setMessages((current) => [
+        ...current,
+        {
+          id: createId("message"),
+          conversationId: conversationId ?? "current",
+          role: "assistant",
+          content: result.plan.summary,
+          metadata: { mode: "plan", agentRunId: result.agentRunId, plan: result.plan },
+          createdAt: new Date().toISOString()
+        }
+      ]);
+    } catch (error) {
+      setNotice(getFriendlyApiError(error));
+    }
+  };
+
   const startNewConversation = () => {
     setConversationId(undefined);
     setMessages([]);
@@ -268,6 +293,7 @@ export function ChatScreen() {
           showsVerticalScrollIndicator={false}
           style={styles.timeline}
         >
+          <DailyBriefingCard briefing={briefing.data} loading={briefing.isPending} />
           {!messages.length && !conversation.isLoading ? (
             <View style={styles.empty}>
               <Text style={styles.emptyTitle}>Start with a normal sentence.</Text>
@@ -290,8 +316,14 @@ export function ChatScreen() {
             return (
               <View key={message.id} style={styles.messageBlock}>
                 <MessageBubble message={message} />
+                {message.role === "assistant" && message.metadata?.mode === "answer" ? (
+                  <TurnThisIntoBar
+                    busy={assistantActions.turnThisInto.isPending}
+                    onSelect={(targetType) => turnThisInto(message.id, targetType)}
+                  />
+                ) : null}
                 {runId && plan ? (
-                  <AgentPlanCard
+                  <SmartConfirmationCard
                     busy={actions.confirmRun.isPending || actions.confirmItem.isPending}
                     plan={plan}
                     onConfirmAll={() => confirmRun(runId)}

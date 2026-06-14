@@ -25,6 +25,7 @@ export class HeuristicIntentParserProvider implements IntentParserProvider {
       this.parseExchangeRate(normalized) ??
       this.parsePriceLog(normalized) ??
       this.parseDebtMemory(normalized) ??
+      this.parseFavourMemory(normalized) ??
       this.parsePromiseMemory(normalized) ??
       this.parseActionPrompt(normalized) ??
       this.parseHabit(normalized) ??
@@ -220,11 +221,14 @@ export class HeuristicIntentParserProvider implements IntentParserProvider {
   }
 
   private parsePromiseMemory({ original }: NormalizedIntentInput): ParsedIntent | undefined {
-    const match = original.match(/i promised\s+([A-Z][A-Za-z .'-]+)\s+i would\s+(.+?)(?:\s+(?:on|by)\s+([^,.]+)|\.|$)/i);
+    const match = original.match(/i (?:promised|told)\s+([A-Z][A-Za-z .'-]+?)\s+(?:i would|i will|i['’]ll)\s+(.+?)(?:\.|$)/i);
     if (!match) return undefined;
     const person = match[1].trim();
-    const taskTitle = this.titleCase(match[2].trim());
-    const deadline = match[3]?.trim() ?? this.extractTimePhrase(original);
+    const deadline = this.extractTimePhrase(original);
+    const rawTask = deadline
+      ? match[2].replace(new RegExp(`\\s+(?:on|by)?\\s*${deadline.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, "i"), "")
+      : match[2];
+    const taskTitle = this.titleCase(rawTask.trim());
     return {
       intentType: "promise_memory",
       triggerType: deadline ? "time" : undefined,
@@ -236,6 +240,22 @@ export class HeuristicIntentParserProvider implements IntentParserProvider {
       confidence: 0.88,
       requiresConfirmation: true,
       suggestedVoiceScript: `You promised ${person} you would ${taskTitle.toLowerCase()}${deadline ? ` by ${deadline}` : ""}.`
+    };
+  }
+
+  private parseFavourMemory({ original, lower }: NormalizedIntentInput): ParsedIntent | undefined {
+    const helped = original.match(/^([A-Z][A-Za-z .'-]+)\s+helped\s+me\s+with\s+(.+?)\.?$/);
+    const returnItem = original.match(/i need to return\s+(.+?)['’]s\s+(.+?)\.?$/i);
+    if (!helped && !returnItem) return undefined;
+    const person = helped?.[1] ?? returnItem?.[1] ?? "Someone";
+    const favour = helped?.[2] ?? `return ${returnItem?.[2] ?? "item"}`;
+    return {
+      intentType: "memory",
+      taskTitle: `${person}: ${favour}`,
+      memoryCandidate: { type: "favour", person, favour },
+      confidence: 0.88,
+      requiresConfirmation: true,
+      suggestedVoiceScript: `You asked me to remember a favour involving ${person}.`
     };
   }
 
@@ -358,7 +378,10 @@ export class HeuristicIntentParserProvider implements IntentParserProvider {
       intentType: "habit",
       triggerType: "habit",
       taskTitle,
-      habitCandidate: habit,
+      habitCandidate: {
+        ...habit,
+        accountability: /\b(help me stay consistent|keep me accountable|accountability)\b/.test(lower)
+      },
       frequency: String(habit.frequency),
       dayOfWeek: habit.dayOfWeek as string | undefined,
       timeOfDay: habit.timeOfDay as string | undefined,
