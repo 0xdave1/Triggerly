@@ -7,6 +7,7 @@ import type {
   AgentRun,
   ChatConversation,
   ChatMessage,
+  ChatResponseMode,
   ConversationSummary,
   SendChatMessageResponse
 } from "./types";
@@ -87,9 +88,41 @@ export async function editAgentPlanItem(runId: string, itemId: string, payload: 
 }
 
 async function localChatFallback(input: { conversationId?: string; message: string }): Promise<SendChatMessageResponse> {
-  const parsed = await parseIntent(input.message);
   const conversationId = input.conversationId ?? createId("conversation");
   const now = new Date().toISOString();
+  const mode = classifyLocalMessage(input.message);
+  const userMessage: ChatMessage = {
+    id: createId("message"),
+    conversationId,
+    role: "user",
+    content: input.message,
+    createdAt: now
+  };
+
+  if (mode !== "plan") {
+    const message = localResponseMessage(mode, input.message);
+    return {
+      mode,
+      message,
+      conversationId,
+      agentRunId: null,
+      plan: null,
+      source: "local_fallback",
+      conversation: { id: conversationId, title: input.message.slice(0, 58) },
+      userMessage,
+      assistantMessage: {
+        id: createId("message"),
+        conversationId,
+        role: "assistant",
+        content: message,
+        metadata: { mode },
+        createdAt: now
+      },
+      agentRun: null
+    };
+  }
+
+  const parsed = await parseIntent(input.message);
   const item = localPlanItem(parsed.parsed);
   const plan: AgentPlan = {
     id: createId("plan"),
@@ -102,30 +135,87 @@ async function localChatFallback(input: { conversationId?: string; message: stri
   };
   const runId = createId("run");
   return {
+    mode: item.type === "ask_clarification" ? "clarification" : "plan",
+    message: plan.summary,
+    conversationId,
+    agentRunId: item.type === "ask_clarification" ? null : runId,
+    plan: item.type === "ask_clarification" ? null : plan,
     source: "local_fallback",
     conversation: { id: conversationId, title: input.message.slice(0, 58) },
-    userMessage: {
-      id: createId("message"),
-      conversationId,
-      role: "user",
-      content: input.message,
-      createdAt: now
-    },
+    userMessage,
     assistantMessage: {
       id: createId("message"),
       conversationId,
       role: "assistant",
       content: plan.summary,
-      metadata: { agentRunId: runId, plan },
+      metadata:
+        item.type === "ask_clarification"
+          ? { mode: "clarification" }
+          : { mode: "plan", agentRunId: runId, plan },
       createdAt: now
     },
-    agentRun: {
-      id: runId,
-      conversationId,
-      status: "waiting_for_confirmation",
-      plan
-    }
+    agentRun:
+      item.type === "ask_clarification"
+        ? null
+        : {
+            id: runId,
+            conversationId,
+            status: "waiting_for_confirmation",
+            plan
+          }
   };
+}
+
+function classifyLocalMessage(input: string): ChatResponseMode {
+  const message = input.trim().toLowerCase().replace(/\s+/g, " ");
+  if (
+    /\b(send|transfer|move|pay)\b.*\b(money|cash|funds?|\d[\d,.]*|₦|naira)\b.*\b(automatically|without asking|without confirmation|silently)\b/.test(
+      message
+    ) ||
+    /\b(secretly|always[- ]?on|all day)\b.*\b(read|listen|record|track)\b/.test(message)
+  ) {
+    return "blocked";
+  }
+  if (/^(remind me( later)?|notify me|tell him tomorrow|do that thing|send it|do it|save it)[.!?]*$/.test(message)) {
+    return "clarification";
+  }
+  if (
+    [
+      /\bremind me\b/,
+      /\bnotify me\b/,
+      /\btell me when\b/,
+      /\balert me\b/,
+      /\bschedule\b/,
+      /\bsave this\b/,
+      /\bremember that\b/,
+      /\bdraft (an? )?(email|message)\b/,
+      /\bsend ((an?|the) )?(email|message)\b/,
+      /\bcreate (an? )?(checklist|reminder|alert|event)\b/,
+      /\bwhen i (get to|arrive|arrive at|leave)\b/,
+      /\bevery (day|week|month|monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b/,
+      /^[a-z][a-z .'-]+ owes me\b/,
+      /\bi (bought|paid) .+\bfor\s+(?:₦|ngn\s*)?\d/i,
+      /\bi promised\b/,
+      /^(call|email|message|text)\s+[a-z]/,
+      /\b(send|transfer|pay)\s+(?:₦|ngn\s*)?\d/i
+    ].some((pattern) => pattern.test(message))
+  ) {
+    return "plan";
+  }
+  return "answer";
+}
+
+function localResponseMessage(mode: ChatResponseMode, input: string) {
+  if (mode === "blocked") {
+    return "I cannot perform that request secretly or automatically. I can help prepare a safe, approval-only alternative when you reconnect.";
+  }
+  if (mode === "clarification") {
+    return "What should I help you remember or prepare, and when or where should it happen?";
+  }
+  if (/\bweather\b/i.test(input)) {
+    return "I cannot check live weather while offline. Reconnect to ask for current information.";
+  }
+  return "I’m offline, so I can’t generate a reliable full answer right now. Reconnect and send this again.";
 }
 
 function localPlanItem(intent: Record<string, unknown>): AgentPlanItem {
@@ -175,10 +265,15 @@ type BackendConversation = Omit<ChatConversation, "messages" | "agentRuns"> & {
 };
 
 type BackendSendResponse = {
+  mode: ChatResponseMode;
+  message: string;
+  conversationId: string;
+  agentRunId: string | null;
+  plan: AgentPlan | null;
   conversation: SendChatMessageResponse["conversation"];
   userMessage: BackendMessage;
   assistantMessage: BackendMessage;
-  agentRun: BackendAgentRun;
+  agentRun: BackendAgentRun | null;
 };
 
 function normalizeMessage(message: BackendMessage): ChatMessage {
@@ -215,10 +310,15 @@ function normalizeConversation(conversation: BackendConversation): ChatConversat
 
 function normalizeSendResponse(response: BackendSendResponse): SendChatMessageResponse {
   return {
+    mode: response.mode,
+    message: response.message,
+    conversationId: response.conversationId,
+    agentRunId: response.agentRunId,
+    plan: response.plan,
     conversation: response.conversation,
     userMessage: normalizeMessage(response.userMessage),
     assistantMessage: normalizeMessage(response.assistantMessage),
-    agentRun: normalizeAgentRun(response.agentRun),
+    agentRun: response.agentRun ? normalizeAgentRun(response.agentRun) : null,
     source: "backend"
   };
 }

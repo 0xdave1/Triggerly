@@ -5,7 +5,8 @@ import { AiService } from "./ai.service";
 describe("AiService", () => {
   function setup(provider = "heuristic") {
     const heuristicProvider = {
-      createAgentPlan: jest.fn().mockResolvedValue({
+      generateNormalAnswer: jest.fn().mockResolvedValue("A helpful fallback answer."),
+      generateAgentPlan: jest.fn().mockResolvedValue({
         summary: "Plan ready",
         requiresConfirmation: true,
         items: [
@@ -21,7 +22,10 @@ describe("AiService", () => {
         ]
       })
     };
-    const freeModelProvider = { createAgentPlan: jest.fn() };
+    const freeModelProvider = {
+      generateNormalAnswer: jest.fn(),
+      generateAgentPlan: jest.fn()
+    };
     const service = new AiService(
       new AiTriggerParserService(),
       {} as any,
@@ -58,7 +62,7 @@ describe("AiService", () => {
 
   it("uses FreeModel plans when configured", async () => {
     const { service: ai, freeModelProvider, heuristicProvider } = setup("freemodel");
-    freeModelProvider.createAgentPlan.mockResolvedValue({
+    freeModelProvider.generateAgentPlan.mockResolvedValue({
       summary: "Location reminder ready",
       requiresConfirmation: true,
       items: [
@@ -77,16 +81,26 @@ describe("AiService", () => {
     const plan = await ai.createAgentPlan("u1", "Buy cookies at Shoprite");
 
     expect(plan.items[0]).toMatchObject({ type: "create_trigger", title: "Buy cookies" });
-    expect(heuristicProvider.createAgentPlan).not.toHaveBeenCalled();
+    expect(heuristicProvider.generateAgentPlan).not.toHaveBeenCalled();
   });
 
   it("falls back to heuristics when FreeModel fails", async () => {
     const { service: ai, freeModelProvider, heuristicProvider } = setup("freemodel");
-    freeModelProvider.createAgentPlan.mockRejectedValue(new Error("invalid provider response"));
+    freeModelProvider.generateAgentPlan.mockRejectedValue(new Error("invalid provider response"));
 
     const plan = await ai.createAgentPlan("u1", "Remind me tomorrow");
 
     expect(plan.summary).toBe("Plan ready");
-    expect(heuristicProvider.createAgentPlan).toHaveBeenCalled();
+    expect(heuristicProvider.generateAgentPlan).toHaveBeenCalled();
+  });
+
+  it("uses the normal-answer provider without creating a plan", async () => {
+    const { service: ai, freeModelProvider, heuristicProvider } = setup("freemodel");
+    freeModelProvider.generateNormalAnswer.mockResolvedValue("Compound interest earns interest on prior interest.");
+
+    const answer = await ai.generateNormalAnswer("u1", "What is compound interest?");
+
+    expect(answer).toContain("prior interest");
+    expect(heuristicProvider.generateAgentPlan).not.toHaveBeenCalled();
   });
 });

@@ -41,15 +41,24 @@ export class AgentOrchestratorService {
     private readonly voice: VoiceScriptService
   ) {}
 
-  async createRun(userId: string, conversationId: string, userInput: string) {
+  async preparePlan(userId: string, userInput: string) {
     const settings = await this.privacy.getSettings(userId);
-    const plan = this.applyPrivacyGates(
-      await this.ai.createAgentPlan(userId, userInput, {
+    return this.applyPrivacyGates(
+      await this.ai.generateAgentPlan(userId, userInput, {
         timezone: "Africa/Lagos",
         locale: "en-NG"
       }),
       settings
     );
+  }
+
+  async createRun(
+    userId: string,
+    conversationId: string,
+    userInput: string,
+    preparedPlan?: AgentPlan
+  ) {
+    const plan = preparedPlan ?? (await this.preparePlan(userId, userInput));
     const status = plan.requiresConfirmation
       ? AgentRunStatus.WAITING_FOR_CONFIRMATION
       : AgentRunStatus.COMPLETED;

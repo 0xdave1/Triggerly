@@ -3,14 +3,42 @@ import { Injectable } from "@nestjs/common";
 import type { ParsedIntent } from "../intent-types";
 import { HeuristicIntentParserProvider } from "../heuristic-intent-parser.provider";
 import { validateAgentPlan } from "../schemas/agent-plan.schema";
-import type { AgentPlan, AgentPlanItem, CreateAgentPlanInput } from "../types/agent-plan.types";
+import type {
+  AgentPlan,
+  AgentPlanItem,
+  CreateAgentPlanInput,
+  GenerateNormalAnswerInput
+} from "../types/agent-plan.types";
 import type { AiProvider } from "./ai-provider.interface";
 
 @Injectable()
 export class HeuristicAiProvider implements AiProvider {
   constructor(private readonly parser: HeuristicIntentParserProvider) {}
 
-  async createAgentPlan(input: CreateAgentPlanInput): Promise<AgentPlan> {
+  async generateNormalAnswer(input: GenerateNormalAnswerInput): Promise<string> {
+    const message = input.message.trim().toLowerCase();
+    if (/\bcompound interest\b/.test(message)) {
+      return "Compound interest is interest calculated on both the original amount and the interest already added. Over time, this makes savings grow faster and debts become more expensive than with simple interest.";
+    }
+    if (/\bwhat is ai\b|\bartificial intelligence\b/.test(message)) {
+      return "Artificial intelligence is software designed to perform tasks that usually require human-like judgment, such as understanding language, recognizing patterns, making predictions, or generating content.";
+    }
+    if (/\bweather\b/.test(message)) {
+      return "Live weather data is not configured yet, so I cannot give you a reliable current forecast. Once a weather provider is connected, I can answer this directly without creating a trigger.";
+    }
+    if (/\bpack\b.*\btravel|\btravel.*\bpack|\bpacking\b/.test(message)) {
+      return "For Abuja, pack light clothing, a layer for cooler evenings, comfortable shoes, sun protection, toiletries, chargers, identification, medication, and anything specific to your plans. I can turn that into a checklist if you ask me to create one.";
+    }
+    if (/\binterview\b/.test(message)) {
+      return "Prepare by researching the company, matching your experience to the role, practicing concise examples, planning thoughtful questions, and checking your route or call setup ahead of time.";
+    }
+    if (/\bproductiv/.test(message)) {
+      return "Choose one important outcome, break it into a small next action, protect a focused time block, and review what actually moved forward at the end of the day.";
+    }
+    return "I can help explain that, but the full AI answer service is currently unavailable. Please try again when the backend AI provider is connected.";
+  }
+
+  async generateAgentPlan(input: CreateAgentPlanInput): Promise<AgentPlan> {
     const intents = await Promise.all(
       this.splitMessage(input.message).map((message) => this.parser.parse(message, { userId: input.userId }))
     );
@@ -25,6 +53,10 @@ export class HeuristicAiProvider implements AiProvider {
       requiresConfirmation: actionable > 0,
       items
     });
+  }
+
+  async createAgentPlan(input: CreateAgentPlanInput): Promise<AgentPlan> {
+    return this.generateAgentPlan(input);
   }
 
   private toPlanItems(intent: ParsedIntent): AgentPlanItem[] {

@@ -38,7 +38,7 @@ describe("FreeModelProvider", () => {
       })
     );
 
-    const plan = await instance.createAgentPlan({ userId: "u1", message: "Buy cookies at Shoprite" });
+    const plan = await instance.generateAgentPlan({ userId: "u1", message: "Buy cookies at Shoprite" });
 
     expect(plan.items[0]).toMatchObject({ type: "create_trigger", status: "proposed" });
     expect(create).toHaveBeenCalledWith(expect.objectContaining({ store: false }));
@@ -47,8 +47,24 @@ describe("FreeModelProvider", () => {
   it("rejects invalid JSON so AiService can use the heuristic fallback", async () => {
     const { instance } = provider("not-json");
 
-    await expect(instance.createAgentPlan({ userId: "u1", message: "Remind me" })).rejects.toThrow(
+    await expect(instance.generateAgentPlan({ userId: "u1", message: "Remind me" })).rejects.toThrow(
       "invalid plan"
+    );
+  });
+
+  it("returns plain text for normal chat", async () => {
+    const { instance, create } = provider("Compound interest grows on principal and prior interest.");
+
+    const answer = await instance.generateNormalAnswer({
+      userId: "u1",
+      message: "What is compound interest?"
+    });
+
+    expect(answer).toContain("prior interest");
+    expect(create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        text: { format: { type: "text" } }
+      })
     );
   });
 });

@@ -140,7 +140,9 @@ The AI endpoints only return suggestions with `requiresConfirmation: true`; they
 
 The parser never executes actions, sends messages, sends money, or reads private messages.
 
-Chat plans use the provider-neutral `AiProvider` interface. With
+Chat uses the provider-neutral `AiProvider` interface. It separates
+`generateNormalAnswer` from `generateAgentPlan`, so informational questions do
+not create confirmation cards or agent runs. With
 `AI_PROVIDER=freemodel`, Triggerly calls FreeModel's OpenAI-compatible Responses
 API from the backend. The response is JSON-parsed and Zod-validated. Provider
 errors or invalid plans fall back to the deterministic provider, so reminders can
@@ -161,7 +163,11 @@ Action prompts are created with `PENDING_CONFIRMATION`. Confirming an action pro
 
 Sensitive action payloads are annotated with `confirmation_required_no_auto_execute`.
 
-Chat uses the same boundary. `POST /chat/messages` may create a conversation, message, agent run, and proposed plan, but it does not create the planned records. Only the agent confirmation endpoints execute approved plan items. Rejected items create no reminder, memory, live alert, or action prompt.
+Chat uses the same boundary. `POST /chat/messages` returns one of four modes:
+`answer`, `plan`, `clarification`, or `blocked`. Only `plan` creates an
+`AgentRun`; normal answers create chat messages only. A proposed plan does not
+create its records. Only the agent confirmation endpoints execute approved plan
+items. Rejected items create no reminder, memory, live alert, or action prompt.
 
 Agent data is persisted in:
 

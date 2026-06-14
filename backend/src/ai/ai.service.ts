@@ -37,22 +37,49 @@ export class AiService {
     message: string,
     context: Record<string, unknown> = {}
   ): Promise<AgentPlan> {
+    return this.generateAgentPlan(userId, message, context);
+  }
+
+  async generateNormalAnswer(
+    userId: string,
+    message: string,
+    context: Record<string, unknown> = {}
+  ): Promise<string> {
+    await this.privacy.assertCanParseAi(userId);
+    const provider = this.config.get<string>("ai.provider") ?? this.config.get<string>("aiProvider") ?? "heuristic";
+
+    if (provider === "freemodel") {
+      try {
+        return await this.freeModelProvider.generateNormalAnswer({ userId, message, context });
+      } catch {
+        // Keep normal chat available when the external provider is temporarily unavailable.
+      }
+    }
+
+    return this.heuristicProvider.generateNormalAnswer({ userId, message, context });
+  }
+
+  async generateAgentPlan(
+    userId: string,
+    message: string,
+    context: Record<string, unknown> = {}
+  ): Promise<AgentPlan> {
     await this.privacy.assertCanParseAi(userId);
     const provider = this.config.get<string>("ai.provider") ?? this.config.get<string>("aiProvider") ?? "heuristic";
 
     if (provider === "freemodel") {
       try {
         return validateAgentPlan(
-          await this.freeModelProvider.createAgentPlan({ userId, message, context })
+          await this.freeModelProvider.generateAgentPlan({ userId, message, context })
         );
       } catch {
-        // FreeModel is an enhancement, not a single point of failure for reminder creation.
+        // FreeModel is an enhancement, not a single point of failure for task planning.
       }
     }
 
     try {
       return validateAgentPlan(
-        await this.heuristicProvider.createAgentPlan({ userId, message, context })
+        await this.heuristicProvider.generateAgentPlan({ userId, message, context })
       );
     } catch {
       return validateAgentPlan(safeClarificationPlan());

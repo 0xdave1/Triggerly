@@ -16,7 +16,7 @@ function makeService(overrides: Record<string, unknown> = {}) {
     chatMessage: { create: jest.fn().mockResolvedValue({}) },
     $transaction: jest.fn().mockImplementation(async (items) => Promise.all(items))
   };
-  const ai = { createAgentPlan: jest.fn() };
+  const ai = { generateAgentPlan: jest.fn() };
   const privacy = {
     getSettings: jest.fn().mockResolvedValue({
       aiParsingEnabled: true,
@@ -75,7 +75,7 @@ function makeService(overrides: Record<string, unknown> = {}) {
 describe("AgentOrchestratorService", () => {
   it("builds a location plan without creating a trigger before confirmation", async () => {
     const { service, mocks } = makeService();
-    mocks.ai.createAgentPlan.mockResolvedValue({
+    mocks.ai.generateAgentPlan.mockResolvedValue({
       id: "p1",
       summary: "One location reminder",
       requiresConfirmation: true,
@@ -114,7 +114,7 @@ describe("AgentOrchestratorService", () => {
       aiParsingEnabled: true,
       locationTriggersEnabled: false
     });
-    mocks.ai.createAgentPlan.mockResolvedValue({
+    mocks.ai.generateAgentPlan.mockResolvedValue({
       id: "p1",
       summary: "One location reminder",
       requiresConfirmation: true,
@@ -206,7 +206,7 @@ describe("AgentOrchestratorService", () => {
 
   it("payment requests only create a pending action prompt", async () => {
     const { service, mocks } = makeService();
-    mocks.ai.createAgentPlan.mockResolvedValue({
+    mocks.ai.generateAgentPlan.mockResolvedValue({
       id: "p1",
       summary: "One payment reminder",
       requiresConfirmation: true,

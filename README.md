@@ -181,11 +181,18 @@ Android and iOS builds should be produced through Expo/EAS later. Do not deploy 
 Chat is Triggerly's primary product surface:
 
 - The user sends a normal sentence through the Chat tab.
-- `POST /chat/messages` stores the conversation and creates an `AgentRun`.
-- The deterministic parser produces a structured `AgentPlan`.
+- `POST /chat/messages` classifies the message as `answer`, `plan`, `clarification`, or `blocked`.
+- Informational questions receive a normal assistant answer and do not create an `AgentRun`.
+- Task requests create a structured `AgentPlan` and an `AgentRun` for confirmation.
 - The app displays each proposed trigger, memory, live alert, or action for review.
 - Only confirmed items are passed to the existing reminder, trigger, memory, live-context, and action services.
 - Every approval and tool execution is persisted for ownership and auditability.
+
+The chat response contract includes `mode`, `message`, `conversationId`,
+`agentRunId`, and `plan`. `agentRunId` and `plan` are `null` for normal answers,
+clarifications, and blocked requests. This keeps ordinary chat conversational
+while preserving explicit approval for anything that changes user data or
+prepares an external action.
 
 The backend remains organized around product capability modules:
 
@@ -281,7 +288,7 @@ Live context notes:
 
 FreeModel notes:
 
-- Chat planning uses the OpenAI-compatible Responses API through the backend-only `openai` package.
+- Normal answers and task planning use separate provider methods through the backend-only OpenAI-compatible Responses API.
 - The backend sends only the current message plus minimal locale/timezone context.
 - Returned plans are parsed and validated with Zod before they can be persisted.
 - Invalid or unavailable FreeModel responses fall back to the deterministic plan provider.

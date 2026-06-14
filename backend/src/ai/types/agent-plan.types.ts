@@ -35,3 +35,5 @@ export type CreateAgentPlanInput = {
   message: string;
   context?: Record<string, unknown>;
 };
+
+export type GenerateNormalAnswerInput = CreateAgentPlanInput;

@@ -1,5 +1,10 @@
-import type { AgentPlan, CreateAgentPlanInput } from "../types/agent-plan.types";
+import type {
+  AgentPlan,
+  CreateAgentPlanInput,
+  GenerateNormalAnswerInput
+} from "../types/agent-plan.types";
 
 export interface AiProvider {
-  createAgentPlan(input: CreateAgentPlanInput): Promise<AgentPlan>;
+  generateNormalAnswer(input: GenerateNormalAnswerInput): Promise<string>;
+  generateAgentPlan(input: CreateAgentPlanInput): Promise<AgentPlan>;
 }

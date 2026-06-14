@@ -15,7 +15,7 @@ describe("HeuristicAiProvider", () => {
     ["Every Sunday evening remind me to review my spending.", "create_trigger", "habit"],
     ["Send 20000 to David tomorrow.", "create_action_prompt", undefined]
   ])("creates a safe plan for %s", async (message, type, triggerType) => {
-    const plan = await provider.createAgentPlan({ userId: "u1", message });
+    const plan = await provider.generateAgentPlan({ userId: "u1", message });
     const item = plan.items[0];
 
     expect(item.type).toBe(type);
@@ -24,7 +24,7 @@ describe("HeuristicAiProvider", () => {
   });
 
   it("marks payment requests sensitive and non-executable", async () => {
-    const plan = await provider.createAgentPlan({
+    const plan = await provider.generateAgentPlan({
       userId: "u1",
       message: "Send 20000 to David tomorrow."
     });
@@ -38,5 +38,14 @@ describe("HeuristicAiProvider", () => {
         executionAllowed: false
       })
     });
+  });
+
+  it("answers common informational questions without producing a plan", async () => {
+    const answer = await provider.generateNormalAnswer({
+      userId: "u1",
+      message: "Explain compound interest."
+    });
+
+    expect(answer).toContain("interest calculated");
   });
 });

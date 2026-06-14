@@ -74,7 +74,7 @@ export function ChatScreen() {
       const response = await actions.send.mutateAsync({ conversationId, message });
       setConversationId(response.conversation.id);
       setMessages((current) => [...current, response.userMessage, response.assistantMessage]);
-      if (response.source === "local_fallback") {
+      if (response.source === "local_fallback" && response.mode === "plan") {
         setNotice("Working locally. Reconnect before confirming so the plan can sync.");
       }
       const voice = await loadVoiceSettings();
@@ -230,8 +230,8 @@ export function ChatScreen() {
       >
         <TerminalHeader
           title="What can I take off your mind?"
-          subtitle="Tell Triggerly once. Review the plan, then decide what gets created."
-          status="confirmation required"
+          subtitle="Ask a question, or tell Triggerly what you want to remember, track, or prepare."
+          status="ready"
         />
 
         <View style={styles.conversationBar}>
@@ -272,7 +272,7 @@ export function ChatScreen() {
             <View style={styles.empty}>
               <Text style={styles.emptyTitle}>Start with a normal sentence.</Text>
               <Text style={styles.emptyBody}>
-                Triggerly will turn it into a plan. Nothing is saved, armed, drafted, or tracked until you confirm.
+                Questions get a direct answer. Tasks become a reviewable plan, and nothing is created until you confirm.
               </Text>
               <View style={styles.examples}>
                 {examples.map((example) => (
